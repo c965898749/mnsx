@@ -1,0 +1,484 @@
+import { _decorator, Button, Component, director, Label, Node, Prefab, Sprite, SpriteFrame } from 'cc';
+import { getConfig, getToken } from 'db://assets/script/common/config/config';
+import { AudioMgr } from 'db://assets/script/util/resource/AudioMgr';
+import { util } from 'db://assets/script/util/util';
+const { ccclass, property } = _decorator;
+
+@ccclass('ShopCtrl')
+export class ShopCtrl extends Component {
+    @property(Node)
+    chongzhiNode: Node
+    @property(Node)
+    timeLabel: Node
+    @property(Button)
+    btnUpdate: Button
+    @property(Node)
+    storeImg
+    shopUpdate: number
+    @property(Node)
+    zhan: Node
+    @property(Node)
+    find: Node
+    @property(Node)
+    itemDetail1: Node
+    @property(Node)
+    itemDetail2: Node
+    @property(Node)
+    introduceBack: Node
+    byItemDetail = null
+    timer = 0
+    @property(Node)
+    byNum: Node
+    @property({ type: Node, tooltip: "任务列表" }) ContentNode: Node = null;
+    @property({ type: Node, tooltip: "任务列表" }) ContentNode2: Node = null;
+    initialized = false;
+    isChongzhi = false
+    start() {
+        this.init("0")
+        this.isChongzhi = false
+        // this.init2()
+    }
+
+    onEnable() {
+        if (!this.initialized) {
+            // 初始化代码
+            this.initialized = true;
+        } else {
+            this.init("0")
+        }
+
+    }
+    async update(deltaTime: number) {
+        if (this.timer >= 50) {
+            // 调用函数，传入目标时间戳1767383923000
+            const result = this.checkTimeDifference(this.shopUpdate);
+            // 打印结果（可根据需求自行处理结果）
+            if (typeof result === 'number') {
+                this.btnUpdate.interactable = false
+                this.timeLabel.active = true
+                let time = result
+                let lable = this.timeLabel.getComponent(Label)
+                let self = this
+                self.storeImg.getComponent(Sprite).spriteFrame = null
+                lable.string = this.formatTime(time) + "秒后可以刷新"
+            } else {
+                this.btnUpdate.interactable = true
+                this.timeLabel.active = false
+                this.storeImg.getComponent(Sprite).spriteFrame =
+                    await util.bundle.load(`image/store/store_06/spriteFrame`, SpriteFrame)
+            }
+            // console.log("GetLeaveEnergyTime:", this.GetLeaveEnergyTime());
+            this.timer = 0;
+        }
+        else {
+            this.timer++;
+        }
+
+    }
+    updateStoreData() {
+        AudioMgr.inst.playOneShot("sound/other/click");
+        this.init("1");
+    }
+    formatTime(remainingSeconds) {
+        var minutes = Math.floor(remainingSeconds / 60); // 向下取整，获取准确分钟数
+        var seconds = Math.floor(remainingSeconds % 60); // 向下取整，获取准确秒数
+        // 秒数补零：不足两位时，前面加0
+        var formattedSeconds = seconds < 10 ? '0' + seconds : seconds;
+        return minutes + ":" + formattedSeconds;
+    }
+    checkTimeDifference(targetTimestamp: number): boolean | number {
+        // 1. 定义30分钟对应的毫秒数：30分钟 = 30 * 60秒 * 1000毫秒/秒
+        const thirtyMinutesMs = 30 * 60 * 1000;
+
+        // 2. 获取当前时间的时间戳（毫秒级）
+        const currentTimestamp = Date.now();
+
+        // 3. 计算时间差值（绝对值，避免目标时间早于/晚于当前时间的异常）
+        const timeDiffMs = Math.abs(targetTimestamp - currentTimestamp);
+
+        // 4. 判断差值是否大于30分钟
+        if (timeDiffMs > thirtyMinutesMs) {
+            return true;
+        } else {
+            // 5. 未超过30分钟时，计算剩余毫秒数并转换为秒（向下取整，也可使用Math.round四舍五入）
+            const remainingMs = thirtyMinutesMs - timeDiffMs;
+            const remainingSeconds = Math.floor(remainingMs / 1000);
+            return remainingSeconds;
+        }
+    }
+
+
+    async chongzhi() {
+        if (!this.isChongzhi) {
+            const result = await util.message.confirm({
+                message: "确定使用钻石重置限时商城吗?"
+            })
+            // 是否确定
+            if (result === false) return
+        }
+        this.isChongzhi = true
+        const config = getConfig()
+        const token = getToken()
+        const postData = {
+            token: token,
+            userId: config.userData.userId,
+        };
+        const options = {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(postData),
+        };
+        fetch(config.ServerUrl.url + "/chongzhi", options)
+            .then(response => {
+
+                return response.json(); // 解析 JSON 响应
+            })
+            .then(async data => {
+                if (data.success == '1') {
+                    const nodePool = util.resource.getNodePool(
+                        await util.bundle.load("prefab/StoreEquipItem", Prefab)
+                    )
+                    const childrens = [...this.ContentNode.children]
+                    for (let i = 0; i < childrens.length; i++) {
+                        const node = childrens[i];
+                        node.getChildByName("arms").children.forEach(x => {
+                            x.getChildByName("sell").getChildByName("Background").off("click")
+                            x.getChildByName("sell").getChildByName("Background").getComponent(Button).interactable = true
+                        })
+                        nodePool.put(node)
+                    }
+                    let map = data.data
+                    // let shopUpdate = map["shopUpdate"]
+                    // this.shopUpdate = shopUpdate
+                    let picked = map["picked"]
+                    let chongzhi = map["chongzhi"]
+                    let userInfo = map["userInfo"]
+                    config.userData.diamond = userInfo.diamond
+                    localStorage.setItem("UserConfigData", JSON.stringify(config))
+                    this.chongzhiNode.getComponent(Label).string = chongzhi + "  (" + config.userData.diamond + ")"
+                    let objArray = picked
+                    for (let i = 0; i < objArray.length; i += 4) {
+                        let item = nodePool.get()
+                        const group = objArray.slice(i, i + 4);
+                        const groupIndex = Math.floor(i / 4) + 1;
+                        // 内层循环：遍历组内的每个元素
+                        for (let j = 0; j < group.length; j++) {
+                            const itemC = group[j];
+                            let aa = item.getChildByName("arms").children[j];
+                            aa.getChildByName("sell").getChildByName("Background").getComponent(Sprite).spriteFrame =
+                                await util.bundle.load(`image/store/store_10/spriteFrame`, SpriteFrame)
+                            if (itemC.goldEdgePrice != 0) {
+                                aa.getChildByName("sell").getChildByName("Background")
+                                    .getChildByName("Label").getComponent(Label).string = itemC.goldEdgePrice
+                                aa.getChildByName("sell").getChildByName("Background").getChildByName("icon_61").getComponent(Sprite).spriteFrame =
+                                    await util.bundle.load(`image/ui/icon_61/spriteFrame`, SpriteFrame)
+                            } else {
+                                aa.getChildByName("sell").getChildByName("Background")
+                                    .getChildByName("Label").getComponent(Label).string = itemC.gemPrice
+                                aa.getChildByName("sell").getChildByName("Background").getChildByName("icon_61").getComponent(Sprite).spriteFrame =
+                                    await util.bundle.load(`image/ui/icon_69/spriteFrame`, SpriteFrame)
+                            }
+                            // icon_61
+                            aa.getComponent(Sprite).spriteFrame =
+                                await util.bundle.load(`image/store/common_0${itemC.quality}/spriteFrame`, SpriteFrame)
+                            if (itemC.type == 1) {
+                                aa.getChildByName("th").getComponent(Sprite).spriteFrame =
+                                    await util.bundle.load(`game/texture/frames/hero/Header/${itemC.itemId}/spriteFrame`, SpriteFrame)
+                            }
+                            aa.getChildByName("sell").getChildByName("Background").on("click", () => { this.clickFun(itemC.id, aa) })
+                        }
+                        this.ContentNode.addChild(item)
+                        continue
+                    }
+
+                } else {
+                    util.message.confirm({ message: data.errorMsg || "服务器异常" })
+                }
+            })
+            .catch(error => {
+                console.error('There was a problem with the fetch operation:', error);
+            }
+            );
+    }
+
+    init(str) {
+        const config = getConfig()
+        const token = getToken()
+        const postData = {
+            token: token,
+            userId: config.userData.userId,
+            str: str
+        };
+        const options = {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(postData),
+        };
+        fetch(config.ServerUrl.url + "/getStore", options)
+            .then(response => {
+
+                return response.json(); // 解析 JSON 响应
+            })
+            .then(async data => {
+                if (data.success == '1') {
+                    const nodePool = util.resource.getNodePool(
+                        await util.bundle.load("prefab/StoreEquipItem", Prefab)
+                    )
+                    const childrens = [...this.ContentNode.children]
+                    for (let i = 0; i < childrens.length; i++) {
+                        const node = childrens[i];
+                        node.getChildByName("arms").children.forEach(x => {
+                            x.getChildByName("sell").getChildByName("Background").off("click")
+                            x.getChildByName("sell").getChildByName("Background").getComponent(Button).interactable = true
+                        })
+                        nodePool.put(node)
+                    }
+                    let map = data.data
+                    let shopUpdate = map["shopUpdate"]
+                    this.shopUpdate = shopUpdate
+                    let picked = map["picked"]
+                    let chongzhi = map["chongzhi"]
+                    this.chongzhiNode.getComponent(Label).string = chongzhi + "  (" + config.userData.diamond + ")"
+                    let objArray = picked
+                    for (let i = 0; i < objArray.length; i += 4) {
+                        let item = nodePool.get()
+                        const group = objArray.slice(i, i + 4);
+                        const groupIndex = Math.floor(i / 4) + 1;
+                        // 内层循环：遍历组内的每个元素
+                        for (let j = 0; j < group.length; j++) {
+                            const itemC = group[j];
+                            let aa = item.getChildByName("arms").children[j];
+                            aa.getChildByName("sell").getChildByName("Background").getComponent(Sprite).spriteFrame =
+                                await util.bundle.load(`image/store/store_10/spriteFrame`, SpriteFrame)
+                            if (itemC.goldEdgePrice != 0) {
+                                aa.getChildByName("sell").getChildByName("Background")
+                                    .getChildByName("Label").getComponent(Label).string = itemC.goldEdgePrice
+                                aa.getChildByName("sell").getChildByName("Background").getChildByName("icon_61").getComponent(Sprite).spriteFrame =
+                                    await util.bundle.load(`image/ui/icon_61/spriteFrame`, SpriteFrame)
+                            } else {
+                                aa.getChildByName("sell").getChildByName("Background")
+                                    .getChildByName("Label").getComponent(Label).string = itemC.gemPrice
+                                aa.getChildByName("sell").getChildByName("Background").getChildByName("icon_61").getComponent(Sprite).spriteFrame =
+                                    await util.bundle.load(`image/ui/icon_69/spriteFrame`, SpriteFrame)
+                            }
+                            // icon_61
+                            aa.getComponent(Sprite).spriteFrame =
+                                await util.bundle.load(`image/store/common_0${itemC.quality}/spriteFrame`, SpriteFrame)
+                            if (itemC.type == 1) {
+                                aa.getChildByName("th").getComponent(Sprite).spriteFrame =
+                                    await util.bundle.load(`game/texture/frames/hero/Header/${itemC.itemId}/spriteFrame`, SpriteFrame)
+                            }
+                            if (itemC.isBuy == 1) {
+                                aa.getChildByName("sell").getChildByName("Background").getComponent(Button).interactable = false
+                                aa.getChildByName("sell").getChildByName("Background")
+                                    .getChildByName("Label").getComponent(Label).string = "已购买"
+                                aa.getChildByName("sell").getChildByName("Background").getComponent(Sprite).spriteFrame =
+                                    await util.bundle.load(`image/store/store_12/spriteFrame`, SpriteFrame)
+                            } else {
+                                aa.getChildByName("sell").getChildByName("Background").getComponent(Button).interactable = true
+                                aa.getChildByName("sell").getChildByName("Background").on("click", () => { this.clickFun(itemC.id, aa) })
+
+                            }
+                        }
+                        this.ContentNode.addChild(item)
+                        continue
+                    }
+
+                }
+            })
+            .catch(error => {
+                console.error('There was a problem with the fetch operation:', error);
+            }
+            );
+    }
+
+    init2() {
+        const config = getConfig()
+        const token = getToken()
+        const postData = {
+            token: token,
+        };
+        const options = {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(postData),
+        };
+        fetch(config.ServerUrl.url + "/getStore2", options)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json(); // 解析 JSON 响应
+            })
+            .then(async data => {
+                let items = data.data
+                this.byItemDetail = null
+                console.log(111)
+                const nodePool2 = util.resource.getNodePool(
+                    await util.bundle.load("prefab/ff5", Prefab)
+                )
+                const childrens = [...this.ContentNode2.children]
+                for (let i = 0; i < childrens.length; i++) {
+                    const node = childrens[i];
+                    node.getChildByName("buy").off("click")
+                    nodePool2.put(node)
+                }
+
+                for (let i = 0; i < items.length; i++) {
+                    let itemDetail = items[i]
+                    let item = nodePool2.get()
+                    console.log(222)
+                    item.getChildByName("buy").on("click", () => { this.clickBuyFun(itemDetail) })
+                    item.getChildByName("name").getComponent(Label).string = itemDetail.itemName
+                    item.getChildByName("Count").getComponent(Label).string = itemDetail.description
+                    item.getChildByName("price").getComponent(Label).string = itemDetail.gemPrice
+                    item.getChildByName("textbox_bg").getChildByName("num").getComponent(Label).string = "限购" + itemDetail.stock
+                    item.getChildByName("yxjm_df_txk").children[0].getComponent(Sprite).spriteFrame =
+                        await util.bundle.load(itemDetail.icon, SpriteFrame)
+                    this.ContentNode2.addChild(item)
+                    continue
+                }
+            })
+            .catch(error => {
+                //console.error('There was a problem with the fetch operation:', error);
+            }
+            );
+
+    }
+
+    async clickBuyFun(itemDetail) {
+        const config = getConfig()
+        const token = getToken()
+        AudioMgr.inst.playOneShot("sound/other/click");
+        this.introduceBack.active = true
+        this.byItemDetail = itemDetail
+        this.introduceBack.getChildByName("name").getComponent(Label).string = itemDetail.itemName
+        this.introduceBack.getChildByName("price").getComponent(Label).string = itemDetail.gemPrice + " (剩余" + config.userData.diamond + ")"
+        this.introduceBack.getChildByName("yxjm_df_txk").getChildByName("header").getComponent(Sprite).spriteFrame =
+            await util.bundle.load(itemDetail.icon, SpriteFrame)
+    }
+
+
+    async buyBtn() {
+        if (!this.byItemDetail) {
+            return await util.message.prompt({ message: "请选择商品" })
+        }
+        var playerItemCount = Number(this.byNum.getComponent(Label).string)
+        if (!playerItemCount || playerItemCount < 1) {
+            return await util.message.prompt({ message: "请选择商品数量" })
+        }
+        const config = getConfig()
+        const token = getToken()
+        const postData = {
+            token: token,
+            userId: config.userData.userId,
+            id: this.byItemDetail.itemId,
+            str: playerItemCount
+        };
+        const options = {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(postData),
+        };
+        fetch(config.ServerUrl.url + "/buyStore2", options)
+            .then(response => {
+
+                return response.json(); // 解析 JSON 响应
+            })
+            .then(async data => {
+                if (data.success == '1') {
+                    let userInfo = data.data;
+                    config.userData.gold = userInfo.gold
+                    config.userData.diamond = userInfo.diamond
+                    config.userData.soul = userInfo.soul
+                    config.userData.characters = userInfo.characterList
+                    localStorage.setItem("UserConfigData", JSON.stringify(config))
+                    await util.message.prompt({ message: "购买成功" })
+                    this.byItemDetail = null;
+                    this.byNum.getComponent(Label).string = 1 + ""
+                    this.introduceBack.active = false
+                } else {
+                    const close = util.message.confirm({ message: data.errorMsg || "服务器异常" })
+                }
+            })
+            .catch(error => {
+                console.error('There was a problem with the fetch operation:', error);
+            }
+            );
+    }
+
+    cannleBtn() {
+        AudioMgr.inst.playOneShot("sound/other/click");
+        this.introduceBack.active = false
+        this.byItemDetail = null
+    }
+
+    clickFun(id: any, aa: Node) {
+        const config = getConfig()
+        const token = getToken()
+        const postData = {
+            token: token,
+            id: id,
+            userId: config.userData.userId,
+        };
+        const options = {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(postData),
+        };
+        fetch(config.ServerUrl.url + "/buyStore", options)
+            .then(response => {
+
+                return response.json(); // 解析 JSON 响应
+            })
+            .then(async data => {
+                if (data.success == '1') {
+                    let userInfo = data.data;
+                    config.userData.gold = userInfo.gold
+                    config.userData.diamond = userInfo.diamond
+                    config.userData.soul = userInfo.soul
+                    config.userData.characters = userInfo.characterList
+                    localStorage.setItem("UserConfigData", JSON.stringify(config))
+                    aa.getChildByName("sell").getChildByName("Background").getComponent(Button).interactable = false
+                    aa.getChildByName("sell").getChildByName("Background")
+                        .getChildByName("Label").getComponent(Label).string = "已购买"
+                    aa.getChildByName("sell").getChildByName("Background").getComponent(Sprite).spriteFrame =
+                        await util.bundle.load(`image/store/store_12/spriteFrame`, SpriteFrame)
+                } else {
+                    const close = util.message.confirm({ message: data.errorMsg || "服务器异常" })
+                }
+            })
+            .catch(error => {
+                console.error('There was a problem with the fetch operation:', error);
+            }
+            );
+    }
+
+    openBag() {
+        AudioMgr.inst.playOneShot("sound/other/click");
+        director.loadScene("BagCrtl")
+    }
+
+    async zhanbao() {
+        AudioMgr.inst.playOneShot("sound/other/click");
+        this.zhan.getComponent(Sprite).spriteFrame = await util.bundle.load('image/button/lian/spriteFrame', SpriteFrame)
+        this.find.getComponent(Sprite).spriteFrame = await util.bundle.load('image/button/lian2/spriteFrame', SpriteFrame)
+        this.itemDetail2.active = false
+        this.itemDetail1.active = true
+        this.init("0")
+    }
+    async frineds() {
+        AudioMgr.inst.playOneShot("sound/other/click");
+        this.zhan.getComponent(Sprite).spriteFrame = await util.bundle.load('image/button/lian2/spriteFrame', SpriteFrame)
+        this.find.getComponent(Sprite).spriteFrame = await util.bundle.load('image/button/lian/spriteFrame', SpriteFrame)
+        this.itemDetail1.active = false
+        this.itemDetail2.active = true
+        this.init2()
+    }
+
+}
+
+
+
+
+

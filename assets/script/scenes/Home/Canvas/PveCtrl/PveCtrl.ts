@@ -1,0 +1,496 @@
+import { _decorator, Component, Label, Node, tween, v3, sp, director, Prefab, instantiate, find, Sprite, SpriteFrame, Button } from 'cc';
+import { L } from 'db://assets/script/common/common/Language';
+import { getConfig, getToken, updateTiliAndHuoLi, updateTiliTime } from 'db://assets/script/common/config/config';
+import { AudioMgr } from 'db://assets/script/util/resource/AudioMgr';
+import { util } from 'db://assets/script/util/util';
+import { FightMap } from '../../../Fight/Canvas/FightMap';
+import { HomeCanvas } from '../../HomeCanvas';
+import { Rewards } from '../../rewards/Rewards';
+const { ccclass, property } = _decorator;
+
+@ccclass('PveCtrl')
+export class PveCtrl extends Component {
+    @property(Button)
+    btnUpdate: Button
+    @property(Node)
+    Tili: Node
+    @property(Node)
+    Exp: Node
+    @property(Node)
+    ExpBar: Node
+    @property(Node)
+    progress: Node
+    @property(Node)
+    PvE_default: Node
+    index: number = 0
+    initialized: boolean = false
+    timer = 0
+    @property(Node)
+    bossComing: Node
+    @property(Node)
+    SpriteSplash: Node
+    @property(Node)
+    mapTitle: Node
+    @property(Node)
+    introduce: Node
+    @property(Node)
+    progressBar: Node
+    @property(Node)
+    page1: Node
+    @property(Node)
+    page2: Node
+    @property(Node)
+    BossList: Node
+    chapter: string
+    @property({ type: cc.Integer, tooltip: "固定尺寸" })
+    MaxEnergy: 720//最大体力值
+    @property({ type: cc.Integer, tooltip: "固定尺寸" })
+    energy = 0
+    huoliEnergy = 0
+    @property(Node)
+    introduceBack: Node
+    @property(Node)
+    numNode: Node
+    @property(Node)
+    useNumNode: Node
+    @property(Node)
+    jiangliNode: Node
+    num = 0;
+    baoCount = 20
+    @property(Node)
+    shangxianNode: Node
+    start() {
+        updateTiliAndHuoLi()
+        this.refresh()
+    }
+    onEnable() {
+        if (!this.initialized) {
+            // 初始化代码
+            this.initialized = true;
+        } else {
+            this.refresh()
+        }
+
+    }
+    render(mapId) {
+        this.chapter = mapId;
+        const config = getConfig()
+        const token = getToken()
+        const postData = {
+            token: token,
+            id: mapId,
+            userId: config.userData.userId
+        };
+        const options = {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(postData),
+        };
+        fetch(config.ServerUrl.url + "pveDetail", options)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json(); // 解析 JSON 响应
+            })
+            .then(async data => {
+                //console.log(data); // 处理响应数据
+                if (data.success == '1') {
+                    var data = data.data
+                    this.chapter = data.id;
+                    for (let i = 0; i < data["pveBossDetails"].length; i++) {
+                        let pveBossDetails = data["pveBossDetails"][i];
+                        let bossNode = this.BossList.children[i];
+                        bossNode.getChildByName("Node").getComponent(Sprite).spriteFrame =
+                            await util.bundle.load('game/texture/frames/hero/Header/' + pveBossDetails.bossId + '/spriteFrame', SpriteFrame)
+                    }
+                    const [chapter, tribulation, level] = data.id.split('-');
+                    if (chapter == "1") {
+                        this.page1.getComponent(Sprite).spriteFrame =
+                            await util.bundle.load("image/PveCtrl/PvE_1_" + tribulation + "/spriteFrame", SpriteFrame)
+                        this.page2.getComponent(Sprite).spriteFrame =
+                            await util.bundle.load("image/PveCtrl/PvE_1_" + tribulation + "/spriteFrame", SpriteFrame)
+                    } else {
+                        this.page1.getComponent(Sprite).spriteFrame =
+                            await util.bundle.load("image/PveCtrl/PvE_" + chapter + "/spriteFrame", SpriteFrame)
+                        this.page2.getComponent(Sprite).spriteFrame =
+                            await util.bundle.load("image/PveCtrl/PvE_" + chapter + "/spriteFrame", SpriteFrame)
+                    }
+                    var chapters = ["一", "二", "三", "四", "五", "六"]
+                    this.mapTitle.getComponent(Label).string = "第" + chapters[tribulation - 1] + "章·" + data.jieName
+                    this.SpriteSplash.getComponent(Label).string = level + "/10" + "  " + data.guanName
+                    this.introduce.getComponent(Label).string = data.introduce
+                    this.progress.getChildByName("ExpCount").getComponent(Label).string = level + "0%"
+                    this.progressBar.setScale(
+                        level / 10,
+                        1,
+                        1
+                    )
+                    if (level == 10) {
+                        this.jiangliNode.active = true
+                        this.jiangliNode.getChildByName("boss").getChildByName("hero").getComponent(Sprite).spriteFrame =
+                            await util.bundle.load('image/ui/icon_69/spriteFrame', SpriteFrame)
+                        this.jiangliNode.getChildByName("boss").getChildByName("Label").getComponent(Label).string = '100'
+                    } else if (level == 5 && data["reward"]) {
+                        this.jiangliNode.active = true
+                        this.jiangliNode.getChildByName("boss").getChildByName("hero").getComponent(Sprite).spriteFrame =
+                            await util.bundle.load('game/texture/frames/hero/Header/' + data["reward"] + '/spriteFrame', SpriteFrame)
+                        this.jiangliNode.getChildByName("boss").getChildByName("Label").getComponent(Label).string = '1'
+                    } else {
+                        this.jiangliNode.active = false
+                    }
+                    this.Exp.getChildByName("ExpCount").getComponent(Label).string = "还需" + (1000 - config.userData.exp)
+                    this.ExpBar.setScale(
+                        config.userData.exp / 1000,
+                        1,
+                        1
+                    )
+                    this.num = data.num
+                    this.baoCount = data.baoCount
+                    this.node.active = true
+                } else {
+                    const close = util.message.confirm({ message: data.errorMsg || "服务器异常" })
+                }
+            })
+            .catch(error => {
+                console.error('There was a problem with the fetch operation:', error);
+            }
+            );
+
+    }
+    //体力获取时间
+    GetLeaveEnergyTime() {
+        var key = 'Leave_EnergyTimes1';
+        var str = localStorage.getItem(key);
+        if (str) {
+            return parseInt(str);
+        }
+        return 600;
+    }
+    SetLeaveEnergyTime(i) {
+        var key = 'Leave_EnergyTimes1';
+        var value = i + "";
+        localStorage.setItem(key, value);
+    }
+    CheckLoginDate(time) {
+        var lastTime = new Date(time);
+        var now = new Date();
+        if (now.getFullYear() !== lastTime.getFullYear() ||
+            now.getMonth() !== lastTime.getMonth() ||
+            now.getDate() !== lastTime.getDate()) {
+            // this.needReset = true;
+            return true;
+        }
+        // cc.log("不需要重置", lastTime.toDateString(), now.toDateString())
+        return false;
+    }
+    refresh() {
+        var EnergyReturnTime = 300
+        this.energy = this.GetLeaveEnergy();
+        //cc.log(this.energy);
+        var LeaveEnergy = this.GetLeaveEnergy();
+        var lastTime = parseInt(localStorage.getItem('LastGetTime1'));
+        if (!lastTime) {
+            lastTime = 0;
+        }
+        let nowTime = new Date().getTime();
+        var tiliCount = Math.floor((nowTime - lastTime) / 1000 / EnergyReturnTime)
+        // 修正问题2：移除多余的 Math.round，保证剩余秒数精确性
+        var passedEnergySeconds = (nowTime - lastTime) / 1000; // 体力已流逝秒数
+        var EnergyTime = EnergyReturnTime - (passedEnergySeconds % EnergyReturnTime); // 下次体力恢复剩余秒数
+        this.SetLeaveEnergyTime(EnergyTime);
+        if (tiliCount < 0) {
+            tiliCount = 0;
+        }
+        if (this.energy > this.MaxEnergy) {
+            let lastDate = this.GetLeaveEnergyTime();
+            if (this.CheckLoginDate(lastDate)) {
+                this.energy = this.MaxEnergy;
+                this.SetLeaveEnergy(this.MaxEnergy);
+                updateTiliTime();
+            }
+        } else if ((tiliCount + LeaveEnergy) >= this.MaxEnergy) {
+            this.energy = this.MaxEnergy;
+            localStorage.setItem('LastGetTime1', nowTime + "");
+            this.SetLeaveEnergy(this.energy);
+            if (tiliCount > 0) {
+                updateTiliTime();
+            }
+        } else if (tiliCount > 0) {
+            this.energy = tiliCount + LeaveEnergy;
+            localStorage.setItem('LastGetTime1', nowTime + "");
+            this.SetLeaveEnergy(this.energy);
+            updateTiliTime();
+        }
+        const config = getConfig()
+        var LeaveEnergy = this.GetLeaveEnergy();
+        this.Tili.getChildByName("TiliCount").getComponent(Label).string = LeaveEnergy + "/720";
+        this.Tili.getChildByName("user_tl").getChildByName("Bar").setScale(
+            LeaveEnergy / 720,
+            1,
+            1
+        )
+        this.Exp.getChildByName("ExpCount").getComponent(Label).string = "还需" + (1000 - config.userData.exp);
+        this.Exp.getChildByName("user_tl").getChildByName("Bar").setScale(
+            config.userData.exp / 1000,
+            1,
+            1
+        )
+    }
+    update(deltaTime: number) {
+        if (this.timer >= 50) {
+            this.refresh();
+            this.timer = 0;
+        }
+        else {
+            this.timer++;
+        }
+    }
+    async goBack() {
+        AudioMgr.inst.playOneShot("sound/other/click");
+        this.node.parent.getChildByName("PveCtrl").active = false
+    }
+
+    async tanSuo() {
+
+        this.btnUpdate.interactable = false
+        let time = 5
+        let self = this
+        this.schedule(function () {
+            time--
+        }, 1, 5)
+        this.scheduleOnce(function () {
+            self.btnUpdate.interactable = true
+        }, 10)
+        let [chapter, tribulation, level] = this.chapter.split('-');
+        if (Number(level) > 10) {
+            return await util.message.prompt({ message: "关卡已探索完" })
+        }
+
+        const config = getConfig()
+        const token = getToken()
+        var LeaveEnergy = this.GetLeaveEnergy();
+        if (LeaveEnergy - 2 < 0) {
+            return await util.message.prompt({ message: "体力不足" })
+        }
+        this.SetLeaveEnergy(LeaveEnergy - 2)
+
+        tween(this.PvE_default.children[this.index])
+            .to(2, { position: v3(-640, 0) })
+            .start();
+        this.index++
+        if (this.index >= 2) {
+            this.index = 0
+        }
+        this.PvE_default.children[this.index].setPosition(640, 0, 0)
+        tween(this.PvE_default.children[this.index])
+            .to(2, { position: v3(0, 0) })
+            .call(async () => {
+                AudioMgr.inst.playOneShot("sound/other/daojian");
+                let bossComing = this.bossComing.getComponent(sp.Skeleton)
+                bossComing.node.active = true
+                bossComing.setAnimation(0, "animation", false)
+                bossComing.setCompleteListener(() => {
+                    bossComing.node.active = false
+                    const postData = {
+                        token: token,
+                        str: chapter + "-" + tribulation + "-" + level,
+                        userId: config.userData.userId,
+                    };
+                    const options = {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(postData),
+                    };
+                    fetch(config.ServerUrl.url + "battle2", options)
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error('Network response was not ok');
+                            }
+                            return response.json(); // 解析 JSON 响应
+                        })
+                        .then(async data => {
+                            if (data.success == '1') {
+                                var map = data.data;
+                                var user = map['user'];
+                                const battle = map['battle'];
+                                const pveDetail = map['pveDetail'];
+                                const rewards = map["rewards"];
+                                const reward = map["reward"];
+                                const levelUp = map["levelUp"]
+                                this.baoCount = user.baoCount
+                                const holAnimationPrefab = await util.bundle.load("prefab/FightMap", Prefab)
+                                const holAnimationNode = instantiate(holAnimationPrefab)
+                                this.node.parent.addChild(holAnimationNode)
+                                await holAnimationNode
+                                    .getComponent(FightMap)
+                                    .render(battle.id, rewards, levelUp)
+                                find('Canvas').getComponent(HomeCanvas).audioSource.pause()
+                                this.node.parent.getChildByName("FightMap").active = true
+                                if (battle.isWin == 0) {
+                                    this.BossList.children.forEach((bossNode) => {
+                                        bossNode.getChildByName("Node").getComponent(Sprite).spriteFrame = null;
+                                    })
+                                    for (let i = 0; i < pveDetail["pveBossDetails"].length; i++) {
+                                        let pveBossDetails = pveDetail["pveBossDetails"][i];
+                                        let bossNode = this.BossList.children[i];
+                                        bossNode.getChildByName("Node").getComponent(Sprite).spriteFrame =
+                                            await util.bundle.load('game/texture/frames/hero/Header/' + pveBossDetails.bossId + '/spriteFrame', SpriteFrame)
+                                    }
+                                    const [chapter, tribulation, level] = pveDetail.id.split('-');
+                                    var chapters = ["一", "二", "三", "四", "五", "六"]
+                                    this.mapTitle.getComponent(Label).string = "第" + chapters[tribulation - 1] + "章·" + pveDetail.jieName
+                                    this.SpriteSplash.getComponent(Label).string = level + "/10" + "  " + pveDetail.guanName
+                                    this.introduce.getComponent(Label).string = pveDetail.introduce
+                                    this.progress.getChildByName("ExpCount").getComponent(Label).string = level + "0%"
+                                    this.progressBar.setScale(
+                                        level / 10,
+                                        1,
+                                        1
+                                    )
+                                    if (level == 10) {
+                                        this.jiangliNode.active = true
+                                        this.jiangliNode.getChildByName("boss").getChildByName("hero").getComponent(Sprite).spriteFrame =
+                                            await util.bundle.load('image/ui/icon_69/spriteFrame', SpriteFrame)
+                                        this.jiangliNode.getChildByName("boss").getChildByName("Label").getComponent(Label).string = '100'
+                                    } else if (level == 5 && reward) {
+                                        this.jiangliNode.active = true
+                                        this.jiangliNode.getChildByName("boss").getChildByName("hero").getComponent(Sprite).spriteFrame =
+                                            await util.bundle.load('game/texture/frames/hero/Header/' + reward + '/spriteFrame', SpriteFrame)
+                                        this.jiangliNode.getChildByName("boss").getChildByName("Label").getComponent(Label).string = ''
+                                    } else {
+                                        this.jiangliNode.active = false
+                                    }
+                                    config.userData.characters = user.characterList
+                                }
+                                config.userData.exp = user.exp
+                                config.userData.diamond = user.diamond
+                                config.userData.lv = user.lv
+                                config.userData.chapter = user.chapter
+                                this.Exp.getChildByName("ExpCount").getComponent(Label).string = "还需" + (1000 - config.userData.exp)
+                                this.ExpBar.setScale(
+                                    config.userData.exp / 1000,
+                                    1,
+                                    1
+                                )
+                                this.chapter = battle.chapter
+                                localStorage.setItem("UserConfigData", JSON.stringify(config))
+
+                            } else {
+                                const close = util.message.confirm({ message: data.errorMsg || "服务器异常" })
+                            }
+                        })
+                        .catch(error => {
+                            console.error('There was a problem with the fetch operation:', error);
+                        }
+                        );
+
+                })
+            })
+            .start();
+
+    }
+    //体力
+    GetLeaveEnergy() {
+        var key = 'Leave_EnergyNumber2';
+        var str = localStorage.getItem(key);
+        if (str) {
+            return parseInt(str);
+        }
+        return 0;
+    }
+    SetLeaveEnergy(i) {
+        var key = 'Leave_EnergyNumber2';
+        var value = i + "";
+        localStorage.setItem(key, value);
+    }
+    openIntroduceBack() {
+        AudioMgr.inst.playOneShot("sound/other/click");
+        this.introduceBack.active = true
+        this.numNode.getComponent(Label).string = this.num + ""
+        this.useNumNode.getComponent(Label).string = "0"
+        this.shangxianNode.getComponent(Label).string = "今日扫荡宝石：" + this.baoCount + "/20"
+    }
+    closeIntroduceBack() {
+        AudioMgr.inst.playOneShot("sound/other/click");
+        this.introduceBack.active = false
+    }
+
+    async saoDan() {
+
+        var useNum = Number(this.useNumNode.getComponent(Label).string)
+        if (Number(useNum) <= 0) {
+            return await util.message.prompt({ message: "请选择扫荡券" })
+        }
+        var LeaveEnergy = this.GetLeaveEnergy();
+        if (LeaveEnergy - 2 * useNum < 0) {
+            return await util.message.prompt({ message: "体力不足" })
+        }
+        let [chapter, tribulation, level] = this.chapter.split('-');
+        const config = getConfig()
+        const token = getToken()
+        const postData = {
+            token: token,
+            str: chapter + "-" + tribulation + "-" + level,
+            userId: config.userData.userId,
+            totalSilverSpent: useNum
+        };
+        const options = {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(postData),
+        };
+        fetch(config.ServerUrl.url + "saodan", options)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json(); // 解析 JSON 响应
+            })
+            .then(async data => {
+                if (data.success == '1') {
+                    var map = data.data;
+                    var user = map['user'];
+                    this.useNumNode.getComponent(Label).string = "0"
+                    const reward = map["rewards"];
+                    config.userData.bronze1 = user.bronze1
+                    config.userData.gold = user.gold
+                    config.userData.diamond = user.diamond
+                    config.userData.bronze = user.bronze
+                    config.userData.darkSteel = user.darkSteel
+                    config.userData.purpleGold = user.purpleGold
+                    config.userData.crystal = user.crystal
+                    config.userData.characters = user.characterList
+                    config.userData.exp = user.exp
+                    config.userData.lv = user.lv
+                    this.baoCount = user.baoCount
+                    this.shangxianNode.getComponent(Label).string = "今日扫荡宝石：" + this.baoCount + "/20"
+                    this.Exp.getChildByName("ExpCount").getComponent(Label).string = "还需" + (1000 - config.userData.exp)
+                    this.ExpBar.setScale(
+                        config.userData.exp / 1000,
+                        1,
+                        1
+                    )
+                    localStorage.setItem("UserConfigData", JSON.stringify(config))
+                    this.SetLeaveEnergy(LeaveEnergy - 2 * useNum)
+                    const rewardsFab = await util.bundle.load("prefab/rewards", Prefab)
+                    const rewards = instantiate(rewardsFab)
+                    this.node.parent.addChild(rewards)
+                    await rewards
+                        .getComponent(Rewards)
+                        .read(reward)
+
+                } else {
+                    const close = util.message.confirm({ message: data.errorMsg || "服务器异常" })
+                }
+            })
+            .catch(error => {
+                console.error('There was a problem with the fetch operation:', error);
+            }
+            );
+
+
+    }
+}
+
+

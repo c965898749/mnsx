@@ -4,7 +4,7 @@ import { getConfig, getToken, updateHuoliTime, updateTiliAndHuoLi, updateTiliTim
 import { AudioMgr } from "../../../util/resource/AudioMgr";
 import { CharacterState, CharacterStateCreate } from '../../../game/fight/character/CharacterState';
 import { LCoin } from '../../../common/common/Language';
-import { HolPreLoad } from '../../../prefab/HolPreLoad';
+// import { HolPreLoad } from '../../../prefab/HolPreLoad';
 import { HomeCanvas } from '../HomeCanvas';
 import { Rewards } from '../rewards/Rewards';
 import { PosInfo } from './base';
@@ -58,7 +58,7 @@ export class HomeBuildings extends Component {
     energy = 0
     huoliEnergy = 0
     @property(Node)
-    cardNodes:Node
+    cardNodes: Node
     // onLoad() {
     //     let nodesToKeep = game.getPersistRootNodes() // 获取所有持久化节点
     //     nodesToKeep.forEach(node => {
@@ -67,7 +67,7 @@ export class HomeBuildings extends Component {
     // }
 
 
-   private _posInfos: PosInfo[] = [];
+    private _posInfos: PosInfo[] = [];
 
     onLoad() {
         this.initPosInfos();
@@ -75,9 +75,9 @@ export class HomeBuildings extends Component {
         this.cardNodes.on(Node.EventType.TOUCH_MOVE, this.onTouchMove, this);
     }
 
-    onDestroy() {
-        this.cardNodes.off(Node.EventType.TOUCH_MOVE, this.onTouchMove, this);
-    }
+    // onDestroy() {
+    //     this.cardNodes.off(Node.EventType.TOUCH_MOVE, this.onTouchMove, this);
+    // }
 
     private initPosInfos(): void {
         this._posInfos = [
@@ -142,11 +142,11 @@ export class HomeBuildings extends Component {
     }
 
     protected async start() {
-        const holPreLoad = this.node.parent.getChildByName("HolPreLoad").getComponent(HolPreLoad)
-        holPreLoad.setTips([
-            "提示\n不同阵营之间相互克制，巧用阵营可以出奇制胜",
-        ])
-        holPreLoad.setProcess(10)
+        // const holPreLoad = this.node.parent.getChildByName("HolPreLoad").getComponent(HolPreLoad)
+        // holPreLoad.setTips([
+        //     "提示\n不同阵营之间相互克制，巧用阵营可以出奇制胜",
+        // ])
+        // holPreLoad.setProcess(10)
         const config = getConfig()
         // 音乐们
         const musics = await util.bundle.loadDir<AudioClip>("sound/home", AudioClip)
@@ -156,16 +156,26 @@ export class HomeBuildings extends Component {
         audioSource.clip = music
         audioSource.volume = config.volume * config.volumeDetail.home
         audioSource.play()
-        holPreLoad.setProcess(100)
+        // holPreLoad.setProcess(100)
+    }
+
+    otherBtn() {
+        AudioMgr.inst.playOneShot("sound/other/click");
+        this.node.getChildByName("other_kuan").active = !this.node.getChildByName("other_kuan").active
+    }
+
+    openBagBtn() {
+        AudioMgr.inst.playOneShot("sound/other/click");
+        director.loadScene("BagCrtl")
     }
     protected async start111() {
         // HolPreLoad 预加载进度条
         console.log(777)
-        const holPreLoad = this.node.parent.getChildByName("HolPreLoad").getComponent(HolPreLoad)
-        holPreLoad.setTips([
-            "提示\n不同阵营之间相互克制，巧用阵营可以出奇制胜",
-        ])
-        holPreLoad.setProcess(10)
+        // const holPreLoad = this.node.parent.getChildByName("HolPreLoad").getComponent(HolPreLoad)
+        // holPreLoad.setTips([
+        //     "提示\n不同阵营之间相互克制，巧用阵营可以出奇制胜",
+        // ])
+        // holPreLoad.setProcess(10)
         const config = getConfig()
         // 音乐们
         const musics = await util.bundle.loadDir<AudioClip>("sound/home", AudioClip)
@@ -175,7 +185,7 @@ export class HomeBuildings extends Component {
         audioSource.clip = music
         audioSource.volume = config.volume * config.volumeDetail.home
         audioSource.play()
-        holPreLoad.setProcess(30)
+        // holPreLoad.setProcess(30)
         if (this.isAroundChristmas()) {
             this.node.getChildByName("zhanhuan").getChildByName("zhanhuan2").active = true
             this.node.getChildByName("Conquer").getComponent(Sprite).spriteFrame =
@@ -187,7 +197,7 @@ export class HomeBuildings extends Component {
             this.node.getChildByName("Courage").getComponent(Sprite).spriteFrame =
                 await util.bundle.load(`image/building/courage2/spriteFrame`, SpriteFrame)
         }
-        holPreLoad.setProcess(50)
+        // holPreLoad.setProcess(50)
         // 当前进度
         let process = 50
         this.node.getChildByName("Top").getChildByName("Gold").getComponent(Label).string = LCoin(config.userData.gold)
@@ -226,7 +236,7 @@ export class HomeBuildings extends Component {
         // 设置 100%
         //战力计算
         this.node.getChildByName("mid").getChildByName("user_fight_count").getComponent(Label).string = this.power + ""
-        holPreLoad.setProcess(100)
+        // holPreLoad.setProcess(100)
     }
 
     isAroundChristmas(): boolean {

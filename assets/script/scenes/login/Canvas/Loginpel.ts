@@ -508,7 +508,7 @@ export class Loginpel extends Component {
     }
     loginBtn(){
         AudioMgr.inst.playOneShot("sound/other/click");
-         director.loadScene("Home")
+        director.loadScene("Home")
     }
     loginBtn2() {
         AudioMgr.inst.playOneShot("sound/other/click");

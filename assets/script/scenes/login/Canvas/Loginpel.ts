@@ -68,48 +68,48 @@ export class Loginpel extends Component {
         console.log(`正在打开QQ加群链接：${groupUrl}`);
     }
     protected onLoad(): void {
-        // if (JSB) {
-        //     this.node.getChildByName("update").active = true;
-        //     let packageUrl = "";
-        //     switch (sys.os) {
-        //         // case sys.OS.OPENHARMONY:
-        //         //     packageUrl = `https://raw.githubusercontent.com/zhitaocai/cocos-creator-gg-hot-update-demo/v6/build/harmonyos-next/data-gg-hot-update`;
-        //         //     break;
-        //         // case sys.OS.OHOS:
-        //         //     packageUrl = `https://raw.githubusercontent.com/zhitaocai/cocos-creator-gg-hot-update-demo/v6/build/ohos/data-gg-hot-update`;
-        //         //     break;
-        //         // case sys.OS.IOS:
-        //         //     packageUrl = `https://raw.githubusercontent.com/zhitaocai/cocos-creator-gg-hot-update-demo/v6/build/ios/data-gg-hot-update`;
-        //         //     break;
-        //         case sys.OS.ANDROID:
-        //             // packageUrl = `https://raw.githubusercontent.com/zhitaocai/cocos-creator-gg-hot-update-demo/v6/build/android/data-gg-hot-update`;
-        //             // packageUrl = `http://192.168.40.10:8082/gg-hot-update-demo/build/android/data-gg-hot-update`;
-        //             packageUrl = `http://czx.yimem.com:5502/data-gg-hot-update`;
-        //             break;
-        //     }
-        //     ggHotUpdateManager.init({
-        //         enableLog: DEBUG,
-        //         packageUrl: packageUrl,
-        //     });
-        // }
+        if (JSB) {
+            this.node.getChildByName("update").active = true;
+            let packageUrl = "";
+            switch (sys.os) {
+                // case sys.OS.OPENHARMONY:
+                //     packageUrl = `https://raw.githubusercontent.com/zhitaocai/cocos-creator-gg-hot-update-demo/v6/build/harmonyos-next/data-gg-hot-update`;
+                //     break;
+                // case sys.OS.OHOS:
+                //     packageUrl = `https://raw.githubusercontent.com/zhitaocai/cocos-creator-gg-hot-update-demo/v6/build/ohos/data-gg-hot-update`;
+                //     break;
+                // case sys.OS.IOS:
+                //     packageUrl = `https://raw.githubusercontent.com/zhitaocai/cocos-creator-gg-hot-update-demo/v6/build/ios/data-gg-hot-update`;
+                //     break;
+                case sys.OS.ANDROID:
+                    // packageUrl = `https://raw.githubusercontent.com/zhitaocai/cocos-creator-gg-hot-update-demo/v6/build/android/data-gg-hot-update`;
+                    // packageUrl = `http://192.168.40.10:8082/gg-hot-update-demo/build/android/data-gg-hot-update`;
+                    packageUrl = `http://czx.yimem.com:5503/data-gg-hot-update`;
+                    break;
+            }
+            ggHotUpdateManager.init({
+                enableLog: DEBUG,
+                packageUrl: packageUrl,
+            });
+        }
     }
 
-    // protected onEnable(): void {
-    //     if (JSB) {
-    //         ggHotUpdateManager.getInstance(GGHotUpdateInstanceEnum.BuildIn).register(this);
-    //         ggHotUpdateManager.getInstance(GGHotUpdateInstanceEnum.BuildIn).checkUpdate();
-    //     } else {
-    //         this.scheduleOnce(() => {
-    //             this._enterLobbyScene();
-    //         }, 0.1);
-    //     }
-    // }
+    protected onEnable(): void {
+        if (JSB) {
+            ggHotUpdateManager.getInstance(GGHotUpdateInstanceEnum.BuildIn).register(this);
+            ggHotUpdateManager.getInstance(GGHotUpdateInstanceEnum.BuildIn).checkUpdate();
+        } else {
+            this.scheduleOnce(() => {
+                this._enterLobbyScene();
+            }, 0.1);
+        }
+    }
 
-    // protected onDisable(): void {
-    //     if (JSB) {
-    //         ggHotUpdateManager.getInstance(GGHotUpdateInstanceEnum.BuildIn).unregister(this);
-    //     }
-    // }
+    protected onDisable(): void {
+        if (JSB) {
+            ggHotUpdateManager.getInstance(GGHotUpdateInstanceEnum.BuildIn).unregister(this);
+        }
+    }
 
     // ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // 监听 GG 热更新回调
@@ -306,69 +306,70 @@ export class Loginpel extends Component {
      * 版本一致，进入游戏主场景
      */
     private enterGame() {
-        const token = getToken()
-        const postData = {
-            token: token,
-        };
-        const options = {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(postData),
-        };
-        fetch(this.url + "updateGame", options)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                return response.json(); // 解析 JSON 响应
-            })
-            .then(data => {
-                // console.log(data); // 处理响应数据
-                if (data.success == '1') {
-                    localStorage.setItem("UserConfigData", null)
-                    var userInfo = data.data;
-                    var config = {
-                        "version": "0.0.1",
-                        "volume": 0.1,
-                        "userData": {
-                            "userId": userInfo.userId,
-                            "gold": userInfo.gold,
-                            "diamond": userInfo.diamond,
-                            "soul": userInfo.soul,
-                            "lv": userInfo.lv,
-                            "exp": userInfo.exp,
-                            "nickname": userInfo.nickname,
-                            "useCardCount": userInfo.useCardCount,
-                            "signCount": userInfo.signCount,
-                            "backpack": [],
-                            "equipments": userInfo.eqCharactersList,
-                            "gameImg": userInfo.gameImg,
-                            "characters": userInfo.characterList,
-                            "winCount": userInfo.winCount,
-                            "chapter": userInfo.chapter,
-                            "stopLevel": userInfo.stopLevel,
-                            "weiwanCount": userInfo.weiwanCount,
-                            "bronze": userInfo.bronze,
-                            "darkSteel": userInfo.darkSteel,
-                            "purpleGold": userInfo.purpleGold,
-                            "crystal": userInfo.crystal,
-                             "myCode":userInfo.myCode
-                        },
-                    }
-                    this.SetLeaveEnergy(userInfo.tiliCount)
-                    localStorage.setItem('LastGetTime1', userInfo.tiliCountTime + "");
-                    localStorage.setItem('LastGetHuoliTime1', userInfo.huoliCountTime + "");
-                    this.SetLeaveHuoliEnergy(userInfo.huoliCount)
-                    localStorage.setItem("UserConfigData", JSON.stringify(config))
-                    director.loadScene("Home")
-                } else {
-                    const close = util.message.confirm({ message: data.errorMsg || "服务器异常" })
-                }
-            })
-            .catch(error => {
-                console.error('There was a problem with the fetch operation:', error);
-            }
-            );
+        director.loadScene("Home")
+        // const token = getToken()
+        // const postData = {
+        //     token: token,
+        // };
+        // const options = {
+        //     method: 'POST',
+        //     headers: { 'Content-Type': 'application/json' },
+        //     body: JSON.stringify(postData),
+        // };
+        // fetch(this.url + "updateGame", options)
+        //     .then(response => {
+        //         if (!response.ok) {
+        //             throw new Error('Network response was not ok');
+        //         }
+        //         return response.json(); // 解析 JSON 响应
+        //     })
+        //     .then(data => {
+        //         // console.log(data); // 处理响应数据
+        //         if (data.success == '1') {
+        //             localStorage.setItem("UserConfigData", null)
+        //             var userInfo = data.data;
+        //             var config = {
+        //                 "version": "0.0.1",
+        //                 "volume": 0.1,
+        //                 "userData": {
+        //                     "userId": userInfo.userId,
+        //                     "gold": userInfo.gold,
+        //                     "diamond": userInfo.diamond,
+        //                     "soul": userInfo.soul,
+        //                     "lv": userInfo.lv,
+        //                     "exp": userInfo.exp,
+        //                     "nickname": userInfo.nickname,
+        //                     "useCardCount": userInfo.useCardCount,
+        //                     "signCount": userInfo.signCount,
+        //                     "backpack": [],
+        //                     "equipments": userInfo.eqCharactersList,
+        //                     "gameImg": userInfo.gameImg,
+        //                     "characters": userInfo.characterList,
+        //                     "winCount": userInfo.winCount,
+        //                     "chapter": userInfo.chapter,
+        //                     "stopLevel": userInfo.stopLevel,
+        //                     "weiwanCount": userInfo.weiwanCount,
+        //                     "bronze": userInfo.bronze,
+        //                     "darkSteel": userInfo.darkSteel,
+        //                     "purpleGold": userInfo.purpleGold,
+        //                     "crystal": userInfo.crystal,
+        //                      "myCode":userInfo.myCode
+        //                 },
+        //             }
+        //             this.SetLeaveEnergy(userInfo.tiliCount)
+        //             localStorage.setItem('LastGetTime1', userInfo.tiliCountTime + "");
+        //             localStorage.setItem('LastGetHuoliTime1', userInfo.huoliCountTime + "");
+        //             this.SetLeaveHuoliEnergy(userInfo.huoliCount)
+        //             localStorage.setItem("UserConfigData", JSON.stringify(config))
+        //             director.loadScene("Home")
+        //         } else {
+        //             const close = util.message.confirm({ message: data.errorMsg || "服务器异常" })
+        //         }
+        //     })
+        //     .catch(error => {
+        //         console.error('There was a problem with the fetch operation:', error);
+        //     }
+        //     );
     }
 
     /**
@@ -461,7 +462,7 @@ export class Loginpel extends Component {
             const postData = {
                 username: username,
                 userpassword: password,
-                yaoCode:yaoCode
+                yaoCode: yaoCode
             };
             // let formData = new FormData();
             // formData.append('username', username);
@@ -506,7 +507,7 @@ export class Loginpel extends Component {
 
         }
     }
-    loginBtn(){
+    loginBtn() {
         AudioMgr.inst.playOneShot("sound/other/click");
         director.loadScene("Home")
     }
@@ -585,7 +586,7 @@ export class Loginpel extends Component {
                                 "darkSteel": userInfo.darkSteel,
                                 "purpleGold": userInfo.purpleGold,
                                 "crystal": userInfo.crystal,
-                                "myCode":userInfo.myCode
+                                "myCode": userInfo.myCode
                             },
                         }
                         this.SetLeaveEnergy(userInfo.tiliCount)

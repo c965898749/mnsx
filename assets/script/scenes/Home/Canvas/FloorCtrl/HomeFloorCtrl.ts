@@ -14,16 +14,23 @@ export class FloorCtrl extends Component {
     goback() {
         AudioMgr.inst.playOneShot("sound/other/click");
         this.node.parent.getChildByName("MapCrtl").active = false
+        this.node.parent.getChildByName("HeroCtrl").active = false
         this.node.parent.getChildByName("Buildings").active = true
     }
-    openMap(){
+    openMap() {
         AudioMgr.inst.playOneShot("sound/other/click");
         this.node.parent.getChildByName("Buildings").active = false
+        this.node.parent.getChildByName("HeroCtrl").active = false
         this.node.parent.getChildByName("MapCrtl").active = true
     }
     activBtn() {
         AudioMgr.inst.playOneShot("sound/other/click");
         director.loadScene("Active")
+    }
+    openHero() {
+        AudioMgr.inst.playOneShot("sound/other/click");
+        this.node.parent.getChildByName("MapCrtl").active = false
+        this.node.parent.getChildByName("HeroCtrl").active = true
     }
 }
 

@@ -168,6 +168,12 @@ export class HomeBuildings extends Component {
         AudioMgr.inst.playOneShot("sound/other/click");
         director.loadScene("BagCrtl")
     }
+
+    openShijianBtn() {
+        AudioMgr.inst.playOneShot("sound/other/click");
+        this.node.parent.getChildByName("shijian").active = true
+    }
+
     protected async start111() {
         // HolPreLoad 预加载进度条
         console.log(777)

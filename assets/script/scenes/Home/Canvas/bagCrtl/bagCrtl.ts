@@ -30,8 +30,8 @@ export class bagCrtl extends Component {
         const childrens = [...this.ContentNode.children]
         for (let i = 0; i < childrens.length; i++) {
             const node = childrens[i];
-            node.getChildByName("use").off("click")
-            node.getChildByName("diu").off("click")
+            // node.getChildByName("use").off("click")
+            // node.getChildByName("diu").off("click")
             nodePool.put(node)
         }
 
@@ -46,7 +46,10 @@ export class bagCrtl extends Component {
 
     }
 
-
+    openLianhua() {
+        AudioMgr.inst.playOneShot("sound/other/click");
+        this.node.parent.getChildByName("hechen").active = true
+    }
 }
 
 

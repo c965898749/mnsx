@@ -19,20 +19,30 @@ export class Loginpel extends Component {
     @property(EditBox)
     Password2: EditBox;
     @property(EditBox)
+    Username3: EditBox;
+    @property(EditBox)
+    Password3: EditBox;
+    @property(EditBox)
     YaoCode: EditBox;
     @property(EditBox)
     YaoCode2: EditBox;
+    @property(EditBox)
+    YaoCode3: EditBox;
     @property(Button)
     sendCode: Button;
+    @property(Button)
+    sendCode2: Button;
     @property(Label)
     sendCodeLabel: Label;
+    @property(Label)
+    sendCodeLabel2: Label;
     @property(Label)
     severeLabel: Label;
     isSendingCode: boolean = false;
     @property({ type: Node, tooltip: "任务列表" }) ContentNode2: Node = null;
     // redis-server.exe redis.windows.conf
-    serverList = [{ "id": 1, "name": "天南大陆", "url": "http://czx.yimem.com:3001/" }]
-    // serverList = [{ "id": 1, "name": "天南大陆", "url": "http://127.0.0.1:8890/" }]
+    // serverList = [{ "id": 1, "name": "天南大陆", "url": "http://czx.yimem.com:3001/" }]
+    serverList = [{ "id": 1, "name": "天南大陆", "url": "http://127.0.0.1:8890/" }]
     url = localStorage.getItem("url") ?? this.serverList[0].url;
     //更新公告内容
     content = `<color=#FFFFFF><size=20>各位道友：</size>
@@ -571,6 +581,79 @@ export class Loginpel extends Component {
 
         }
     }
+    forgotPassword() {
+        AudioMgr.inst.playOneShot("sound/other/click");
+        const username = this.Username3.string;
+        const yaoCode3 = this.YaoCode3.string;
+        const password = this.Password3.string; // 假设有两个输入框，分别用于用户名和密码
+        if (!username) {
+            const close = util.message.confirm({ message: "请输入邮箱" })
+            return;
+        }
+        const emailRegex = /^[a-zA-Z0-9_\-.]+@[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+)+$/;
+        if (!emailRegex.test(username)) {
+            util.message.confirm({ message: "请输入有效的邮箱地址" });
+            return;
+        }
+
+        if (!password) {
+            const close = util.message.confirm({ message: "请输入密码" })
+            return;
+        }
+        if (!yaoCode3) {
+            const close = util.message.confirm({ message: "请输入验证码" })
+            return;
+        }
+        // 验证逻辑（示例）
+        if (username && password) {
+            const postData = {
+                username: username,
+                userpassword: password,
+                yaoCode: yaoCode3
+            };
+            // let formData = new FormData();
+            // formData.append('username', username);
+            // formData.append('userpassword', password);
+
+            // 将数据转换为 JSON 字符串
+            const options = {
+                // method: 'POST',
+                // // headers: {
+                // //     'Content-Type': 'application/json'
+                // // },
+                // body: formData
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(postData),
+                // body: formData
+                // credentials: 'include',
+                // mode: 'cors'
+            };
+
+            // 发送 POST 请求
+            fetch(this.url + "forgotPassword", options)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json(); // 解析 JSON 响应
+                })
+                .then(data => {
+                    // console.log(data); // 处理响应数据
+                    if (data.success == '1') {
+                        const close = util.message.confirm({ message: data.errorMsg || "服务器异常" })
+                    } else {
+                        const close = util.message.confirm({ message: data.errorMsg || "服务器异常" })
+                    }
+                })
+                .catch(error => {
+                    console.error('There was a problem with the fetch operation:', error);
+                }
+                );
+        } else {
+
+        }
+    }
     updateStoreData() {
         AudioMgr.inst.playOneShot("sound/other/click");
         const username = this.Username2.string;
@@ -629,6 +712,64 @@ export class Loginpel extends Component {
             }
             );
     }
+    updateStoreData2() {
+        AudioMgr.inst.playOneShot("sound/other/click");
+        const username = this.Username3.string;
+        if (!username) {
+            const close = util.message.confirm({ message: "请输入邮箱" })
+            return;
+        }
+        const emailRegex = /^[a-zA-Z0-9_\-.]+@[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+)+$/;
+        if (!emailRegex.test(username)) {
+            util.message.confirm({ message: "请输入有效的邮箱地址" });
+            return;
+        }
+        // 验证逻辑（示例）
+        const postData = {
+            str: username,
+        };
+        const options = {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(postData),
+        };
+
+        // 发送 POST 请求
+        fetch(this.url + "sendVerificationCode", options)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json(); // 解析 JSON 响应
+            })
+            .then(data => {
+                // console.log(data); // 处理响应数据
+                if (data.success == '1') {
+                    const close = util.message.confirm({ message: data.errorMsg || "服务器异常" })
+                    this.sendCode2.interactable = false
+                    let time = 60
+                    let self = this
+                    this.sendCodeLabel2.string = "(" + time + ")"
+                    this.schedule(function () {
+                        time--
+                        this.sendCodeLabel2.string = "(" + time + ")"
+                        if (time <= 0) {
+                            this.sendCodeLabel2.string = "发送验证码"
+                        }
+                    }, 1, 60)
+                    this.scheduleOnce(function () {
+                        self.sendCode2.interactable = true
+                        self.sendCodeLabel2.string = "发送验证码"
+                    }, 60)
+                } else {
+                    const close = util.message.confirm({ message: data.errorMsg || "服务器异常" })
+                }
+            })
+            .catch(error => {
+                console.error('There was a problem with the fetch operation:', error);
+            }
+            );
+    }
     closeYao() {
         AudioMgr.inst.playOneShot("sound/other/click");
         this.node.getChildByName("YaoCode").active = false
@@ -647,12 +788,20 @@ export class Loginpel extends Component {
         AudioMgr.inst.playOneShot("sound/other/click");
         this.node.getChildByName("ServerList").active = false
     }
+    goback4() {
+        AudioMgr.inst.playOneShot("sound/other/click");
+        this.node.getChildByName("forgotPassword").active = false
+    }
 
     registerBtn() {
         AudioMgr.inst.playOneShot("sound/other/click");
         this.node.getChildByName("register").active = true
     }
 
+    forgotPasswordBtn() {
+        AudioMgr.inst.playOneShot("sound/other/click");
+        this.node.getChildByName("forgotPassword").active = true
+    }
 
     async openServerList() {
         AudioMgr.inst.playOneShot("sound/other/click");

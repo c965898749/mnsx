@@ -1,5 +1,5 @@
 import { _decorator, Component, find, instantiate, Label, Node, Prefab, Sprite, SpriteFrame } from 'cc';
-import { getConfig, getToken, updateHuoliTime } from 'db://assets/script/common/config/config';
+import { getConfig, getToken } from 'db://assets/script/common/config/config';
 import { util } from 'db://assets/script/util/util';
 import { FightMap } from '../../../Fight/Canvas/FightMap';
 import { AudioMgr } from 'db://assets/script/util/resource/AudioMgr';
@@ -34,93 +34,10 @@ export class AscensionPillJinjiCtrl extends Component {
         // this.refushData()
     }
 
-    //体力获取时间
-    GetLeaveHuoliEnergyTime() {
-        var key = 'Leave_EnergyHuoliTimes1';
-        var str = localStorage.getItem(key);
-        if (str) {
-            return parseInt(str);
-        }
-        return 600;
-    }
-    GetLeaveHuoliEnergy() {
-        var key = 'Leave_EnergyHuoliNumber2';
-        var str = localStorage.getItem(key);
-        if (str) {
-            return parseInt(str);
-        }
-        return 0;
-    }
-    CheckLoginHuoliDate(time) {
-        var lastTime = new Date(time);
-        var now = new Date();
-        if (now.getFullYear() !== lastTime.getFullYear() ||
-            now.getMonth() !== lastTime.getMonth() ||
-            now.getDate() !== lastTime.getDate()) {
-            // this.needReset = true;
-            return true;
-        }
-        // cc.log("不需要重置", lastTime.toDateString(), now.toDateString())
-        return false;
-    }
-
-    SetLeaveEnergyHuoliTime(i) {
-        var key = 'Leave_EnergyHuoliTimes1';
-        var value = i + "";
-        localStorage.setItem(key, value);
-    }
-    //体力系统
-    setTili() {
-        var EnergyReturnTime = 300
-        this.huoliEnergy = this.GetLeaveHuoliEnergy();
-        //cc.log(this.energy);
-        var LeaveHuoliEnergy = this.GetLeaveHuoliEnergy();
-        var lastTime2 = parseInt(localStorage.getItem('LastGetHuoliTime1'));
-        if (!lastTime2) {
-            lastTime2 = 0;
-        }
-        let nowTime = new Date().getTime();
-        var hiliCount = Math.floor((nowTime - lastTime2) / 1000 / EnergyReturnTime)
-        // 活力下次恢复剩余秒数（同理，保持一致性）
-        var passedHuoliSeconds = (nowTime - lastTime2) / 1000;
-        var HuoliTime = EnergyReturnTime - (passedHuoliSeconds % EnergyReturnTime);
-        this.SetLeaveEnergyHuoliTime(HuoliTime);
-        if (hiliCount < 0) {
-            hiliCount = 0;
-        }
+    
 
 
-        if (this.huoliEnergy > this.MaxEnergy) {
-            let lastDate = this.GetLeaveHuoliEnergyTime();
-            if (this.CheckLoginHuoliDate(lastDate)) {
-                this.huoliEnergy = this.MaxEnergy;
-                this.SetLeaveHuoliEnergy(this.MaxEnergy);
-                updateHuoliTime();
-            }
-        } else if ((hiliCount + LeaveHuoliEnergy) >= this.MaxEnergy) {
-            this.huoliEnergy = this.MaxEnergy;
-            localStorage.setItem('LastGetHuoliTime1', nowTime + "");
-            this.SetLeaveHuoliEnergy(this.huoliEnergy);
-            if (hiliCount > 0) {
-                updateHuoliTime();
-            }
-        } else if (hiliCount > 0) {
-            this.huoliEnergy = hiliCount + LeaveHuoliEnergy;
-            localStorage.setItem('LastGetHuoliTime1', nowTime + "");
-            this.SetLeaveHuoliEnergy(this.huoliEnergy);
-            updateHuoliTime();
-        }
 
-
-        if (this.energyHuoliLabel) {
-            this.energyHuoliLabel.getComponent(Label).string = this.huoliEnergy + "/" + this.MaxEnergy;
-            this.Huoli.setScale(
-                this.huoliEnergy / this.MaxEnergy,
-                1,
-                1
-            )
-        }
-    }
     async render(customEventData) {
         this.customEventData = customEventData;
         this.refushData()
@@ -195,11 +112,6 @@ export class AscensionPillJinjiCtrl extends Component {
         // director.addPersistRootNode(this.node);
         const config = getConfig()
         const token = getToken()
-        var LeaveHuoliEnergy = this.GetLeaveHuoliEnergy();
-        if (LeaveHuoliEnergy - 10 < 0) {
-            return await util.message.prompt({ message: "活力不足" })
-        }
-        this.SetLeaveHuoliEnergy(LeaveHuoliEnergy - 10)
         const postData = {
             token: token,
             userId: userId,

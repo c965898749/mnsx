@@ -1,6 +1,6 @@
 import { _decorator, AudioClip, AudioSource, Component, director, EventTouch, find, instantiate, Label, log, math, Node, Prefab, screen, Sprite, SpriteFrame, tween, UITransform, v3, Vec3 } from 'cc';
 import { util } from '../../../util/util';
-import { getConfig, getToken, updateHuoliTime, updateTiliAndHuoLi, updateTiliTime } from '../../../common/config/config';
+import { getConfig, getToken } from '../../../common/config/config';
 import { AudioMgr } from "../../../util/resource/AudioMgr";
 import { CharacterState, CharacterStateCreate } from '../../../game/fight/character/CharacterState';
 import { LCoin } from '../../../common/common/Language';
@@ -59,12 +59,6 @@ export class HomeBuildings extends Component {
     huoliEnergy = 0
     @property(Node)
     cardNodes: Node
-    // onLoad() {
-    //     let nodesToKeep = game.getPersistRootNodes() // 获取所有持久化节点
-    //     nodesToKeep.forEach(node => {
-    //         director.getScene().addChild(node); // 将节点重新添加到新场景中
-    //     });
-    // }
 
 
     private _posInfos: PosInfo[] = [];
@@ -75,9 +69,6 @@ export class HomeBuildings extends Component {
         this.cardNodes.on(Node.EventType.TOUCH_MOVE, this.onTouchMove, this);
     }
 
-    // onDestroy() {
-    //     this.cardNodes.off(Node.EventType.TOUCH_MOVE, this.onTouchMove, this);
-    // }
 
     private initPosInfos(): void {
         this._posInfos = [
@@ -142,11 +133,6 @@ export class HomeBuildings extends Component {
     }
 
     protected async start() {
-        // const holPreLoad = this.node.parent.getChildByName("HolPreLoad").getComponent(HolPreLoad)
-        // holPreLoad.setTips([
-        //     "提示\n不同阵营之间相互克制，巧用阵营可以出奇制胜",
-        // ])
-        // holPreLoad.setProcess(10)
         const config = getConfig()
         // 音乐们
         const musics = await util.bundle.loadDir<AudioClip>("sound/home", AudioClip)
@@ -156,7 +142,7 @@ export class HomeBuildings extends Component {
         audioSource.clip = music
         audioSource.volume = config.volume * config.volumeDetail.home
         audioSource.play()
-        // holPreLoad.setProcess(100)
+        this.node.getChildByName("top").getChildByName("Name").getChildByName("kuan").getChildByName("name").getComponent(Label).string = config.userData.nickname
     }
 
     otherBtn() {
@@ -174,6 +160,15 @@ export class HomeBuildings extends Component {
         this.node.parent.getChildByName("shijian").active = true
     }
 
+    openChoukaBtn() {
+        AudioMgr.inst.playOneShot("sound/other/click");
+        this.node.parent.getChildByName("shouquan").active = true
+    }
+
+    openRecruitBtn() {
+        AudioMgr.inst.playOneShot("sound/other/click");
+        this.node.parent.getChildByName("RecruitCtrl").active = true
+    }
     protected async start111() {
         // HolPreLoad 预加载进度条
         console.log(777)
@@ -407,7 +402,6 @@ export class HomeBuildings extends Component {
     }
     async update1111(deltaTime: number) {
         if (this.timer >= 50) {
-            this.setTili();
             // console.log("GetLeaveEnergyTime:", this.GetLeaveEnergyTime());
             this.timer = 0;
         }
@@ -459,430 +453,8 @@ export class HomeBuildings extends Component {
 
 
 
-    //体力系统
-    setTili() {
-        var EnergyReturnTime = 300
-        this.energy = this.GetLeaveEnergy();
-        this.huoliEnergy = this.GetLeaveHuoliEnergy();
-        //cc.log(this.energy);
-        var LeaveEnergy = this.GetLeaveEnergy();
-        var LeaveHuoliEnergy = this.GetLeaveHuoliEnergy();
-        var lastTime = parseInt(localStorage.getItem('LastGetTime1'));
-        if (!lastTime) {
-            lastTime = 0;
-        }
-        var lastTime2 = parseInt(localStorage.getItem('LastGetHuoliTime1'));
-        if (!lastTime2) {
-            lastTime2 = 0;
-        }
-        let nowTime = new Date().getTime();
-        var tiliCount = Math.floor((nowTime - lastTime) / 1000 / EnergyReturnTime)
-        var hiliCount = Math.floor((nowTime - lastTime2) / 1000 / EnergyReturnTime)
-        // 修正问题2：移除多余的 Math.round，保证剩余秒数精确性
-        var passedEnergySeconds = (nowTime - lastTime) / 1000; // 体力已流逝秒数
-        var EnergyTime = EnergyReturnTime - (passedEnergySeconds % EnergyReturnTime); // 下次体力恢复剩余秒数
-        // 活力下次恢复剩余秒数（同理，保持一致性）
-        var passedHuoliSeconds = (nowTime - lastTime2) / 1000;
-        var HuoliTime = EnergyReturnTime - (passedHuoliSeconds % EnergyReturnTime);
-        if (tiliCount < 0) {
-            tiliCount = 0;
-        }
-        if (hiliCount < 0) {
-            hiliCount = 0;
-        }
-        this.SetLeaveEnergyTime(EnergyTime);
-        this.SetLeaveEnergyHuoliTime(HuoliTime);
-        if (tiliCount < 0) {
-            tiliCount = 0;
-        }
-        if (hiliCount < 0) {
-            hiliCount = 0;
-        }
-        if (this.energy > this.MaxEnergy) {
-            let lastDate = this.GetLeaveEnergyTime();
-            if (this.CheckLoginDate(lastDate)) {
-                this.energy = this.MaxEnergy;
-                this.SetLeaveEnergy(this.MaxEnergy);
-                updateTiliTime();
-            }
-        } else if ((tiliCount + LeaveEnergy) >= this.MaxEnergy) {
-            this.energy = this.MaxEnergy;
-            localStorage.setItem('LastGetTime1', nowTime + "");
-            this.SetLeaveEnergy(this.energy);
-            if (tiliCount > 0) {
-                updateTiliTime();
-            }
-        } else if (tiliCount > 0) {
-            this.energy = tiliCount + LeaveEnergy;
-            localStorage.setItem('LastGetTime1', nowTime + "");
-            this.SetLeaveEnergy(this.energy);
-            updateTiliTime();
-        }
+   
 
-
-        if (this.huoliEnergy > this.MaxEnergy) {
-            let lastDate = this.GetLeaveHuoliEnergyTime();
-            if (this.CheckLoginHuoliDate(lastDate)) {
-                this.huoliEnergy = this.MaxEnergy;
-                this.SetLeaveHuoliEnergy(this.MaxEnergy);
-                updateHuoliTime();
-            }
-        } else if ((hiliCount + LeaveHuoliEnergy) >= this.MaxEnergy) {
-            this.huoliEnergy = this.MaxEnergy;
-            localStorage.setItem('LastGetHuoliTime1', nowTime + "");
-            this.SetLeaveHuoliEnergy(this.huoliEnergy);
-            if (hiliCount > 0) {
-                updateHuoliTime();
-            }
-        } else if (hiliCount > 0) {
-            this.huoliEnergy = hiliCount + LeaveHuoliEnergy;
-            localStorage.setItem('LastGetHuoliTime1', nowTime + "");
-            this.SetLeaveHuoliEnergy(this.huoliEnergy);
-            updateHuoliTime();
-        }
-
-
-
-        if (this.energyLabel) {
-            this.energyLabel.getComponent(Label).string = this.energy + "/" + this.MaxEnergy;
-            this.Tili.setScale(
-                this.energy / this.MaxEnergy,
-                1,
-                1
-            )
-        }
-        if (this.energyHuoliLabel) {
-            this.energyHuoliLabel.getComponent(Label).string = this.huoliEnergy + "/" + this.MaxEnergy;
-            this.Huoli.setScale(
-                this.huoliEnergy / this.MaxEnergy,
-                1,
-                1
-            )
-        }
-    }
-
-    //体力
-    GetLeaveEnergy() {
-        var key = 'Leave_EnergyNumber2';
-        var str = localStorage.getItem(key);
-        if (str) {
-            return parseInt(str);
-        }
-        return 0;
-    }
-    GetLeaveHuoliEnergy() {
-        var key = 'Leave_EnergyHuoliNumber2';
-        var str = localStorage.getItem(key);
-        if (str) {
-            return parseInt(str);
-        }
-        return 0;
-    }
-    SetLeaveEnergy(i) {
-        var key = 'Leave_EnergyNumber2';
-        if (i < 0) {
-            i = 0;
-        }
-        var value = i + "";
-        localStorage.setItem(key, value);
-    }
-    SetLeaveHuoliEnergy(i) {
-        if (i < 0) {
-            i = 0;
-        }
-        var key = 'Leave_EnergyHuoliNumber2';
-        var value = i + "";
-        localStorage.setItem(key, value);
-    }
-    //体力获取时间
-    GetLeaveEnergyTime() {
-        var key = 'Leave_EnergyTimes1';
-        var str = localStorage.getItem(key);
-        if (str) {
-            return parseInt(str);
-        }
-        return 600;
-    }
-    //体力获取时间
-    GetLeaveHuoliEnergyTime() {
-        var key = 'Leave_EnergyHuoliTimes1';
-        var str = localStorage.getItem(key);
-        if (str) {
-            return parseInt(str);
-        }
-        return 600;
-    }
-    SetLeaveEnergyTime(i) {
-        var key = 'Leave_EnergyTimes1';
-        var value = i + "";
-        localStorage.setItem(key, value);
-    }
-    SetLeaveEnergyHuoliTime(i) {
-        var key = 'Leave_EnergyHuoliTimes1';
-        var value = i + "";
-        localStorage.setItem(key, value);
-    }
-    CheckLoginDate(time) {
-        var lastTime = new Date(time);
-        var now = new Date();
-        if (now.getFullYear() !== lastTime.getFullYear() ||
-            now.getMonth() !== lastTime.getMonth() ||
-            now.getDate() !== lastTime.getDate()) {
-            // this.needReset = true;
-            return true;
-        }
-        // cc.log("不需要重置", lastTime.toDateString(), now.toDateString())
-        return false;
-    }
-    CheckLoginHuoliDate(time) {
-        var lastTime = new Date(time);
-        var now = new Date();
-        if (now.getFullYear() !== lastTime.getFullYear() ||
-            now.getMonth() !== lastTime.getMonth() ||
-            now.getDate() !== lastTime.getDate()) {
-            // this.needReset = true;
-            return true;
-        }
-        // cc.log("不需要重置", lastTime.toDateString(), now.toDateString())
-        return false;
-    }
-
-
-
-    // protected onDestroy(): void {
-    //     // 触摸事件销毁
-    //     this.node.off(Node.EventType.TOUCH_MOVE, this.onNodeTouchMove, this)
-    //     this.node.off(Node.EventType.TOUCH_END, this.onNodeTouchEnd, this)
-    // }
-
-    // private $FrameSize: math.Size
-
-    // // 触摸移动场景
-    // private $lastPositionX = -1
-    // private onNodeTouchMove(event: EventTouch) {
-    //     const currentPositionX = event.touch.getLocationX()
-    //     if (this.$lastPositionX !== -1) {
-    //         const positionX = this.node.position.x + (currentPositionX - this.$lastPositionX) * 0.9
-    //         if (Math.abs(positionX) <= (1826 - this.$FrameSize.width) / 2)
-    //             this.node.setPosition(
-    //                 positionX,
-    //                 this.node.position.y,
-    //                 this.node.position.z
-    //             )
-    //     }
-    //     this.$lastPositionX = currentPositionX
-    //     return
-    // }
-    // private onNodeTouchEnd() {
-    //     this.$lastPositionX = -1
-    // }
-
-    // 打开关卡选择场景
-    public async OpenLevelMap() {
-        AudioMgr.inst.playOneShot("sound/other/click");
-        this.node.parent.getChildByName("Buildings").active = false
-        this.node.parent.getChildByName("otherCtrl").active = false
-        this.node.parent.getChildByName("JinjiCtrl").active = false
-        this.node.parent.getChildByName("CardCrtl").active = false
-        this.node.parent.getChildByName("EquipmentCtrl").active = false
-        this.node.parent.getChildByName("ShopCtrl").active = false
-        this.node.parent.getChildByName("PveCtrl").active = false
-        this.node.parent.getChildByName("synthesisCtrl").active = false
-        this.node.parent.getChildByName("MyFriendsCrtl").active = false
-        this.node.parent.getChildByName("ArenaCrtl").active = false
-        this.node.parent.getChildByName("ArenaApplyCrtl").active = false
-        this.node.parent.getChildByName("ArenaDetailCrtl").active = false
-        this.node.parent.getChildByName("MapCrtl").active = true
-    }
-
-    // 打开商店场景
-    public async OpenShopMap() {
-        AudioMgr.inst.playOneShot("sound/other/click");
-    }
-
-    // 打开勇气试炼
-    public async OpenCourageMap() {
-        AudioMgr.inst.playOneShot("sound/other/click");
-    }
-
-    // 打开抽卡界面
-    public async OpenDrawCard() {
-        AudioMgr.inst.playOneShot("sound/other/click");
-    }
-
-
-    // 打开征服之塔
-    public async OpenConquer() {
-        AudioMgr.inst.playOneShot("sound/other/click");
-    }
-    // 打开背包
-    async OpenHero() {
-        AudioMgr.inst.playOneShot("sound/other/click");
-        this.node.parent.getChildByName("Buildings").active = false
-        this.node.parent.getChildByName("otherCtrl").active = false
-        this.node.parent.getChildByName("JinjiCtrl").active = false
-        this.node.parent.getChildByName("MapCrtl").active = false
-        this.node.parent.getChildByName("EquipmentCtrl").active = false
-        this.node.parent.getChildByName("ShopCtrl").active = false
-        this.node.parent.getChildByName("PveCtrl").active = false
-        this.node.parent.getChildByName("synthesisCtrl").active = false
-        this.node.parent.getChildByName("MyFriendsCrtl").active = false
-        this.node.parent.getChildByName("MessageCrtl").active = false
-        this.node.parent.getChildByName("ArenaCrtl").active = false
-        this.node.parent.getChildByName("eqQianghuaCtrl").active = false
-        this.node.parent.getChildByName("ArenaApplyCrtl").active = false
-        this.node.parent.getChildByName("ArenaDetailCrtl").active = false
-        this.node.parent.getChildByName("CardCrtl").active = true
-    }
-
-
-    // 打开召唤
-    public async Zhaohuan() {
-        //console.log(111)
-        AudioMgr.inst.playOneShot("sound/other/click");
-        this.node.parent.getChildByName("Buildings").active = false
-        this.node.parent.getChildByName("RecruitCtrl").active = true
-    }
-
-    // d队伍
-    public async Tiem() {
-        //console.log(111)
-        AudioMgr.inst.playOneShot("sound/other/click");
-        this.node.parent.getChildByName("Buildings").active = false
-        this.node.parent.getChildByName("TiemCtrl").active = true
-    }
-    //回到主页
-    public async BackHome() {
-        AudioMgr.inst.playOneShot("sound/other/click");
-        this.node.parent.getChildByName("RecruitCtrl").active = false
-        this.node.parent.getChildByName("TiemCtrl").active = false
-        this.node.parent.getChildByName("JinjiCtrl").active = false
-        this.node.parent.getChildByName("JinjichangCtrl").active = false
-        this.node.parent.getChildByName("qianghuaCtrl").active = false
-        this.node.parent.getChildByName("otherCtrl").active = false
-        this.node.parent.getChildByName("CardCrtl").active = false
-        this.node.parent.getChildByName("MapCrtl").active = false
-        this.node.parent.getChildByName("EquipmentCtrl").active = false
-        this.node.parent.getChildByName("ShopCtrl").active = false
-        this.node.parent.getChildByName("PveCtrl").active = false
-        this.node.parent.getChildByName("eqQianghuaCtrl").active = false
-        this.node.parent.getChildByName("synthesisCtrl").active = false
-        this.node.parent.getChildByName("MyFriendsCrtl").active = false
-        this.node.parent.getChildByName("MessageCrtl").active = false
-        this.node.parent.getChildByName("ArenaCrtl").active = false
-        this.node.parent.getChildByName("ArenaApplyCrtl").active = false
-        this.node.parent.getChildByName("ArenaDetailCrtl").active = false
-        this.node.parent.getChildByName("Buildings").active = true
-    }
-    //挑战
-    public async Tiaozhan() {
-        AudioMgr.inst.playOneShot("sound/other/click");
-        this.node.parent.getChildByName("Buildings").active = false
-        this.node.parent.getChildByName("otherCtrl").active = false
-        this.node.parent.getChildByName("CardCrtl").active = false
-        this.node.parent.getChildByName("MapCrtl").active = false
-        this.node.parent.getChildByName("EquipmentCtrl").active = false
-        this.node.parent.getChildByName("ShopCtrl").active = false
-        this.node.parent.getChildByName("PveCtrl").active = false
-        this.node.parent.getChildByName("synthesisCtrl").active = false
-        this.node.parent.getChildByName("MessageCrtl").active = false
-        this.node.parent.getChildByName("qianghuaCtrl").active = false
-        this.node.parent.getChildByName("eqQianghuaCtrl").active = false
-        this.node.parent.getChildByName("ArenaApplyCrtl").active = false
-        this.node.parent.getChildByName("ArenaDetailCrtl").active = false
-        this.node.parent.getChildByName("JinjiCtrl").active = true
-    }
-
-    //强化
-    public async Qianhua() {
-        AudioMgr.inst.playOneShot("sound/other/click");
-        this.node.parent.getChildByName("Buildings").active = false
-        this.node.parent.getChildByName("qianghuaCtrl").active = true
-    }
-
-    //强化
-    public async Other() {
-        AudioMgr.inst.playOneShot("sound/other/click");
-        this.node.parent.getChildByName("Buildings").active = false
-        this.node.parent.getChildByName("JinjiCtrl").active = false
-        this.node.parent.getChildByName("CardCrtl").active = false
-        this.node.parent.getChildByName("MapCrtl").active = false
-        this.node.parent.getChildByName("EquipmentCtrl").active = false
-        this.node.parent.getChildByName("ShopCtrl").active = false
-        this.node.parent.getChildByName("PveCtrl").active = false
-        this.node.parent.getChildByName("eqQianghuaCtrl").active = false
-        this.node.parent.getChildByName("synthesisCtrl").active = false
-        this.node.parent.getChildByName("MyFriendsCrtl").active = false
-        this.node.parent.getChildByName("MessageCrtl").active = false
-        this.node.parent.getChildByName("ArenaCrtl").active = false
-        this.node.parent.getChildByName("ArenaApplyCrtl").active = false
-        this.node.parent.getChildByName("ArenaDetailCrtl").active = false
-        this.node.parent.getChildByName("otherCtrl").active = true
-    }
-
-    //强化
-    public async OpenEquipment() {
-        AudioMgr.inst.playOneShot("sound/other/click");
-        this.node.parent.getChildByName("Buildings").active = false
-        this.node.parent.getChildByName("JinjiCtrl").active = false
-        this.node.parent.getChildByName("CardCrtl").active = false
-        this.node.parent.getChildByName("MapCrtl").active = false
-        this.node.parent.getChildByName("otherCtrl").active = false
-        this.node.parent.getChildByName("ShopCtrl").active = false
-        this.node.parent.getChildByName("PveCtrl").active = false
-        this.node.parent.getChildByName("eqQianghuaCtrl").active = false
-        this.node.parent.getChildByName("synthesisCtrl").active = false
-        this.node.parent.getChildByName("MyFriendsCrtl").active = false
-        this.node.parent.getChildByName("MessageCrtl").active = false
-        this.node.parent.getChildByName("ArenaCrtl").active = false
-        this.node.parent.getChildByName("ArenaApplyCrtl").active = false
-        this.node.parent.getChildByName("ArenaDetailCrtl").active = false
-        this.node.parent.getChildByName("EquipmentCtrl").active = true
-    }
-
-    public async OpenShop() {
-        AudioMgr.inst.playOneShot("sound/other/click");
-        this.node.parent.getChildByName("Buildings").active = false
-        this.node.parent.getChildByName("JinjiCtrl").active = false
-        this.node.parent.getChildByName("CardCrtl").active = false
-        this.node.parent.getChildByName("MapCrtl").active = false
-        this.node.parent.getChildByName("otherCtrl").active = false
-        this.node.parent.getChildByName("EquipmentCtrl").active = false
-        this.node.parent.getChildByName("PveCtrl").active = false
-        this.node.parent.getChildByName("eqQianghuaCtrl").active = false
-        this.node.parent.getChildByName("synthesisCtrl").active = false
-        this.node.parent.getChildByName("MyFriendsCrtl").active = false
-        this.node.parent.getChildByName("MessageCrtl").active = false
-        this.node.parent.getChildByName("ArenaCrtl").active = false
-        this.node.parent.getChildByName("ArenaApplyCrtl").active = false
-        this.node.parent.getChildByName("ArenaDetailCrtl").active = false
-        this.node.parent.getChildByName("ShopCtrl").active = true
-    }
-
-
-
-    public jianLi() {
-        AudioMgr.inst.playOneShot("sound/other/click");
-        // this.node.parent.getChildByName("SignInCtrl").active = true
-        // this.node.parent.getChildByName("SignInCtrl").scale = new Vec3(0, 0, 0)
-        // tween(this.node.parent.getChildByName("SignInCtrl"))
-        //     .to(1, { scale: new Vec3(1, 1, 1) }, { easing: 'elasticOut' })
-        //     .start();
-        this.node.parent.getChildByName("DailyView").active = true
-        this.node.parent.getChildByName("DailyView").scale = new Vec3(0, 0, 0)
-        tween(this.node.parent.getChildByName("DailyView"))
-            .to(1, { scale: new Vec3(1, 1, 1) }, { easing: 'elasticOut' })
-            .start();
-    }
-
-    openUserInfo() {
-        AudioMgr.inst.playOneShot("sound/other/click");
-        this.node.parent.getChildByName("UserInfoCrtl").active = true
-    }
-
-    openCeremonialGiftView() {
-        AudioMgr.inst.playOneShot("sound/other/click");
-        this.node.parent.getChildByName("CeremonialGiftView").active = true
-    }
+   
 }
 

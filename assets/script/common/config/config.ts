@@ -23,10 +23,7 @@ class VolumeDetail {
 }
 
 class ServerUrl {
-    // redis-server.exe redis.windows.conf
-    // url = "http://192.168.0.104:8080/"
-    // url = "http://127.0.0.1:8080/"
-    url="http://czx.yimem.com:3000/"
+    url = ""
 }
 
 let globalId: number = 1
@@ -71,7 +68,7 @@ class UserData extends Resource {
     public darkSteel: number = 0
     public purpleGold: number = 0
     public crystal: number = 0
-    public myCode:string
+    public myCode: string
 
 
     // 已经收集到的英雄
@@ -90,7 +87,7 @@ class UserData extends Resource {
         this.diamond = or.diamond || 100
         this.soul = or.soul || 1000
         this.gameImg = or.gameImg
-        this.myCode=or.myCode
+        this.myCode = or.myCode
         this.winCount = or.winCount
         this.rate = or.rate || 0
         this.bronze = or.bronze || 0
@@ -198,7 +195,6 @@ export function stockConfig() {
 }
 
 export function updateConfig() {
-    console.log(config.userData.diamond, 444)
     // config.userData.characters = config.userData.characters
     localStorage.setItem("UserConfigData", JSON.stringify(config))
 }
@@ -216,115 +212,5 @@ export function getConfig(): Config {
 export function getToken() {
     return localStorage.getItem("token")
 }
-
-
-export function updateTiliTime() {
-    const config = getConfig()
-    const token = getToken()
-    var lastTime = parseInt(localStorage.getItem('LastGetTime1'));
-    var key = 'Leave_EnergyNumber2';
-    var str = localStorage.getItem(key);
-    if (str) {
-        str
-    }
-    const postData = {
-        token: token,
-        str: lastTime,
-        tiLi: parseInt(str),
-        userId: config.userData.userId,
-    };
-    const options = {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(postData),
-    };
-    fetch(config.ServerUrl.url + "/updateTli", options)
-        .then(response => {
-
-            return response.json(); // 解析 JSON 响应
-        })
-        .then(async data => {
-            if (data.success == '1') {
-                // console.log("更新体力时间成功");
-            }
-        })
-        .catch(error => {
-            console.error('There was a problem with the fetch operation:', error);
-        }
-        );
-
-}
-
-export function updateHuoliTime() {
-    const config = getConfig()
-    const token = getToken()
-    var lastTime = parseInt(localStorage.getItem('LastGetHuoliTime1'));
-    var key = 'Leave_EnergyHuoliNumber2';
-    var str = localStorage.getItem(key);
-    if (!str) {
-        str = "0";
-    }
-    const postData = {
-        token: token,
-        str: lastTime,
-        huoLi: parseInt(str),
-        userId: config.userData.userId,
-    };
-    const options = {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(postData),
-    };
-    fetch(config.ServerUrl.url + "/updateTli3", options)
-        .then(response => {
-
-            return response.json(); // 解析 JSON 响应
-        })
-        .then(async data => {
-            if (data.success == '1') {
-                // console.log("更新活力力时间成功");
-            }
-        })
-        .catch(error => {
-            console.error('There was a problem with the fetch operation:', error);
-        }
-        );
-
-}
-
-export function updateTiliAndHuoLi() {
-    const config = getConfig()
-    const token = getToken()
-    const postData = {
-        token: token,
-        userId: config.userData.userId,
-    };
-    const options = {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(postData),
-    };
-    fetch(config.ServerUrl.url + "/updateTli2", options)
-        .then(response => {
-
-            return response.json(); // 解析 JSON 响应
-        })
-        .then(async data => {
-            if (data.success == '1') {
-                const userInfo = data.data;
-                localStorage.setItem('Leave_EnergyNumber2', userInfo.tiliCount + "");
-                localStorage.setItem('LastGetTime1', userInfo.tiliCountTime + "");
-                localStorage.setItem('LastGetHuoliTime1', userInfo.huoliCountTime + "");
-                localStorage.setItem('Leave_EnergyHuoliNumber2', userInfo.huoliCount + "");
-            }
-        })
-        .catch(error => {
-            console.error('There was a problem with the fetch operation:', error);
-        }
-        );
-
-}
-
-
 
 

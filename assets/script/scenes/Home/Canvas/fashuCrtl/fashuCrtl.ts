@@ -27,6 +27,7 @@ export class fashuCrtl extends Component {
         const childrens = [...this.ContentNode.children]
         for (let i = 0; i < childrens.length; i++) {
             const node = childrens[i];
+            node.getChildByName("yxjm_df_txk").getChildByName("Sprite").off("click")
             // node.getChildByName("use").off("click")
             // node.getChildByName("diu").off("click")
             nodePool.put(node)
@@ -34,9 +35,15 @@ export class fashuCrtl extends Component {
 
         for (let i = 0; i < 20; i++) {
             let item = nodePool.get()
+            item.getChildByName("yxjm_df_txk").getChildByName("Sprite").on("click", () => { this.showdetail() })
             this.ContentNode.addChild(item)
         }
 
+    }
+
+    async showdetail() {
+
+        await util.message.introduce({ message: "这是一个物品的介绍", name: "同修石", desc: "已拥有:9999999", icon: "/game/texture/frames/emp/17000109/spriteFrame" })
     }
 
     update(deltaTime: number) {

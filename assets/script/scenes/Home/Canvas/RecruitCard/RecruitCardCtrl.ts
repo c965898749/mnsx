@@ -12,34 +12,56 @@ export class RecruitCardCtrl extends Component {
     @property({ type: Node, tooltip: "招募10张抽卡位移位置" }) tenCardPos: Node = null;
     @property({ type: Button }) buttonOk: Button = null;
     @property(Node)
-    rateNode: Node
+    page1: Node = null;
     @property(Node)
-    diamond1: Node
+    page2: Node = null;
     @property(Node)
-    diamond2: Node
+    page3: Node = null;
     @property(Node)
-    diamond3: Node
+    page4: Node = null;
     @property(Node)
-    diamond4: Node
-    @property(Node)
-    BlockInputEvents: Node
-    isChongzhi=false
+    page5: Node = null;
+    isChongzhi = false
     start() {
 
     }
 
-    update(deltaTime: number) {
-        const config = getConfig()
-        // console.log(config)
-        this.rateNode.getComponent(Label).string = config.userData.rate + "倍"
-        this.diamond1.getComponent(Label).string = "(已有" + config.userData.soul + ")"
-        this.diamond2.getComponent(Label).string = "(已有" + config.userData.diamond + ")"
-        this.diamond3.getComponent(Label).string = "(已有" + config.userData.diamond + ")"
-        this.diamond4.getComponent(Label).string = "(已有" + config.userData.soul + ")"
+    init(event:Event,name: string) {
+        AudioMgr.inst.playOneShot("sound/other/click");
+        if (name == "page1") {
+            this.page1.active = true;
+            this.page2.active = false;
+            this.page3.active = false;
+            this.page4.active = false;
+            this.page5.active = false;
+        } else if (name == "page2") {
+            this.page2.active = true;
+            this.page1.active = false;
+            this.page3.active = false;
+            this.page4.active = false;
+            this.page5.active = false;
+        } else if (name == "page3") {
+            this.page3.active = true;
+            this.page1.active = false;
+            this.page2.active = false;
+            this.page4.active = false;
+            this.page5.active = false;
+        } else if (name == "page4") {
+            this.page4.active = true;
+            this.page1.active = false;
+            this.page2.active = false;
+            this.page3.active = false;
+            this.page5.active = false;
+        } else if (name == "page5") {
+            this.page5.active = true;
+            this.page1.active = false;
+            this.page2.active = false;
+            this.page3.active = false;
+            this.page4.active = false;
+        }
     }
 
     onGStart3(recruitCardCtrl: recruitCardCtrl) {
-        this.BlockInputEvents.active = true
         const config = getConfig()
         const token = getToken()
         console.log(config.userData.userId, 555)
@@ -55,7 +77,6 @@ export class RecruitCardCtrl extends Component {
         fetch(config.ServerUrl.url + "/soulChou", options)
             .then(response => {
                 if (!response.ok) {
-                    this.BlockInputEvents.active = false
                     throw new Error('Network response was not ok');
                 }
                 return response.json(); // 解析 JSON 响应
@@ -90,12 +111,10 @@ export class RecruitCardCtrl extends Component {
                         localStorage.setItem("UserConfigData", JSON.stringify(config))
                     }
                 } else {
-                    this.BlockInputEvents.active = false
                     const close = util.message.confirm({ message: data.errorMsg || "服务器异常" })
                 }
             })
             .catch(error => {
-                this.BlockInputEvents.active = false
                 const close = util.message.confirm({ message: error })
             }
             );
@@ -104,24 +123,23 @@ export class RecruitCardCtrl extends Component {
 
     }
 
-    onGStart(recruitCardCtrl: recruitCardCtrl) {
-        this.BlockInputEvents.active = true
+    onGStart(event: Event, boxType:string) {
         const config = getConfig()
         const token = getToken()
         console.log(config.userData.userId, 555)
         const postData = {
             token: token,
             userId: config.userData.userId,
+            str: boxType
         };
         const options = {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(postData),
         };
-        fetch(config.ServerUrl.url + "/danChou", options)
+        fetch(config.ServerUrl.url + "danChou", options)
             .then(response => {
                 if (!response.ok) {
-                    this.BlockInputEvents.active = false
                     throw new Error('Network response was not ok');
                 }
                 return response.json(); // 解析 JSON 响应
@@ -135,11 +153,11 @@ export class RecruitCardCtrl extends Component {
                     this.onceCard.active = true;
                     AudioMgr.inst.playOneShot("sound/other/click");
                     if (this.onceCard.children.length > 0) {
-                        let comp = this.onceCard.getChildByName("RecuitCardItem").getComponent(RecuitCardItem);
-                        comp.init(dto.hero, recruitCardCtrl.cb);
-                        config.userData.characters = dto.characters
-                        config.userData.diamond = user.diamond
-                        localStorage.setItem("UserConfigData", JSON.stringify(config))
+                        // let comp = this.onceCard.getChildByName("RecuitCardItem").getComponent(RecuitCardItem);
+                        // comp.init(dto.hero, recruitCardCtrl.cb);
+                        // config.userData.characters = dto.characters
+                        // config.userData.diamond = user.diamond
+                        // localStorage.setItem("UserConfigData", JSON.stringify(config))
                     } else {
                         const nodePool = util.resource.getNodePool(
                             await util.bundle.load("/prefab/RecuitCardItem", Prefab)
@@ -156,12 +174,12 @@ export class RecruitCardCtrl extends Component {
                         localStorage.setItem("UserConfigData", JSON.stringify(config))
                     }
                 } else {
-                    this.BlockInputEvents.active = false
+
                     const close = util.message.confirm({ message: data.errorMsg || "服务器异常" })
                 }
             })
             .catch(error => {
-                this.BlockInputEvents.active = false
+
                 const close = util.message.confirm({ message: error })
             }
             );
@@ -169,7 +187,7 @@ export class RecruitCardCtrl extends Component {
 
 
     }
-    async onGStart2(recruitCardCtr) {
+    async onGStart2(event: Event, boxType:string) {
         if (!this.isChongzhi) {
             const result = await util.message.confirm({
                 message: "确定使用钻石10连抽吗?"
@@ -178,22 +196,23 @@ export class RecruitCardCtrl extends Component {
             if (result === false) return
         }
         this.isChongzhi = true
-        this.BlockInputEvents.active = true
+
         const config = getConfig()
         const token = getToken()
         const postData = {
             token: token,
             userId: config.userData.userId,
+            str: boxType
         };
         const options = {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(postData),
         };
-        fetch(config.ServerUrl.url + "/shiChou", options)
+        fetch(config.ServerUrl.url + "shiChou", options)
             .then(response => {
                 if (!response.ok) {
-                    this.BlockInputEvents.active = false
+
                     throw new Error('Network response was not ok');
                 }
                 return response.json(); // 解析 JSON 响应
@@ -232,12 +251,12 @@ export class RecruitCardCtrl extends Component {
                     }
 
                 } else {
-                    this.BlockInputEvents.active = false
+
                     const close = util.message.confirm({ message: data.errorMsg || "服务器异常" })
                 }
             })
             .catch(error => {
-                this.BlockInputEvents.active = false
+
                 console.error('There was a problem with the fetch operation:', error);
             }
             );
@@ -246,7 +265,7 @@ export class RecruitCardCtrl extends Component {
 
 
     async onGStart4(recruitCardCtr) {
-        this.BlockInputEvents.active = true
+
         const config = getConfig()
         const token = getToken()
         const postData = {
@@ -261,7 +280,7 @@ export class RecruitCardCtrl extends Component {
         fetch(config.ServerUrl.url + "/soulShiChou", options)
             .then(response => {
                 if (!response.ok) {
-                    this.BlockInputEvents.active = false
+
                     throw new Error('Network response was not ok');
                 }
                 return response.json(); // 解析 JSON 响应
@@ -296,17 +315,16 @@ export class RecruitCardCtrl extends Component {
                         config.userData.characters = dto.characters
                         config.userData.soul = user.soul
                         config.userData.rate = user.rate
-                        this.diamond4.getComponent(Label).string = "(已有" + config.userData.soul + ")"
                         localStorage.setItem("UserConfigData", JSON.stringify(config))
                     }
 
                 } else {
-                    this.BlockInputEvents.active = false
+
                     const close = util.message.confirm({ message: data.errorMsg || "服务器异常" })
                 }
             })
             .catch(error => {
-                this.BlockInputEvents.active = false
+
                 console.error('There was a problem with the fetch operation:', error);
             }
             );
@@ -326,7 +344,7 @@ export class RecruitCardCtrl extends Component {
         this.onceCard.active = false;
         this.tenCard.active = false;
         this.tenCardPos.active = false;
-        this.BlockInputEvents.active = false
+
     }
 
 

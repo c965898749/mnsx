@@ -1,4 +1,4 @@
-import { _decorator, Component, director, EditBox, instantiate, Label, Prefab, ProgressBar, sys } from 'cc';
+import { _decorator, Component, director, EditBox, instantiate, Node, Label, Prefab, ProgressBar, sys, tween, Vec3, RichText, Button, Sprite, SpriteFrame } from 'cc';
 const { ccclass, property } = _decorator;
 import { util } from '../../../util/util';
 import { AudioMgr } from "../../../util/resource/AudioMgr";
@@ -9,18 +9,54 @@ import { ggHotUpdateManager } from "../../../../../extensions/gg-hot-update/asse
 import { GGHotUpdateInstanceEnum, GGHotUpdateInstanceState } from "../../../../../extensions/gg-hot-update/assets/scripts/hotupdate/GGHotUpdateType";
 @ccclass('Loginpel')
 export class Loginpel extends Component {
-
+    isRequesting: boolean = false;
     @property(EditBox)
     Username: EditBox;
     @property(EditBox)
     Password: EditBox;
     @property(EditBox)
+    Username2: EditBox;
+    @property(EditBox)
+    Password2: EditBox;
+    @property(EditBox)
     YaoCode: EditBox;
+    @property(EditBox)
+    YaoCode2: EditBox;
+    @property(Button)
+    sendCode: Button;
+    @property(Label)
+    sendCodeLabel: Label;
+    @property(Label)
+    severeLabel: Label;
+    isSendingCode: boolean = false;
+    @property({ type: Node, tooltip: "任务列表" }) ContentNode2: Node = null;
     // redis-server.exe redis.windows.conf
-    // url = "http://192.168.0.104:8080/"
-    // url = "http://127.0.0.1:8080/"
-    url = "http://czx.yimem.com:3000/"
+    serverList = [{ "id": 1, "name": "天南大陆", "url": "http://czx.yimem.com:3001/" }]
+    // serverList = [{ "id": 1, "name": "天南大陆", "url": "http://127.0.0.1:8890/" }]
+    url = localStorage.getItem("url") ?? this.serverList[0].url;
+    //更新公告内容
+    content = `<color=#FFFFFF><size=20>各位道友：</size>
+<color=#FFA500><size=19>全新五星限定卡牌、全新矿场玩法、属性上限增益重磅上线，助力各位道友潜心修炼、纵横三界，具体更新详情如下：</size>
 
+<color=#FFFF00><size=18>▶ 全新五星卡牌：太上老君限定魂魄来袭</size><color=#FFFF00><size=18>▶ 魂魄获取方式：完成每日任务，开启活跃宝箱即可100%获取太上老君五星卡魂魄</size>
+<color=#FFFF00><size=18>▶ 卡牌合成规则：集齐180个太上老君五星魂魄，即可合成完整五星太上老君卡牌</size>
+<color=#FFA500><size=19>全新修炼玩法更新：</size>
+<color=#FFFFFF><size=17>1. 新增矿场抢夺玩法，道友可通过矿场挑战抢夺海量修炼资源，大幅提升修炼速度</size>
+<color=#FFFFFF><size=17>2. 全方位优化修炼体系，解锁全新资源获取渠道，告别修炼停滞，提速进阶</size>
+<color=#FFFFFF><size=17>3. 大幅度提升全服玩家活力上限、体力上限，解锁更多玩法次数，自由探索三界</size>
+<color=#FFFFFF><size=17>4. 活力、体力上限为永久增益，所有道友上线即可自动生效，无需手动激活</size>
+<color=#FF6347><size=19>五星太上老君卡牌专属优势：</size><color=#FF4500><size=18>★ 顶级五星仙卡资质，附带专属仙法buff，战力大幅跃升</size>
+<color=#FF4500><size=18>★ 契合修炼体系特性，搭配矿场玩法可额外提升资源获取效率</size><color=#FF4500><size=18>★ 稀有永久卡牌，属性稳定增益，助力道友登顶武道巅峰</size>
+
+<color=#87CEFA><size=18>玩法问题咨询渠道：</size>
+<color=#FFFFFF><size=16>▶ 游戏内：祭坛-客服石碑</size>
+<color=#FFFFFF><size=16>▶ 官方①QQ群：1092641657</size>
+<color=#FFFFFF><size=16>▶ GM邮箱：chengzhixiang2023@163.com</size>
+
+<color=#FF69B4><size=18>仙卡现世助力修行，矿场争锋问鼎仙途，各位道友速速启程！</size>
+<color=#CCCCCC><size=14>【QQ神仙依梦工作室】2026年6月19日</size> `
+
+    checkUpdateToday = false;
     @property(Label)
     messageLabel: Label = null!;
 
@@ -39,8 +75,11 @@ export class Loginpel extends Component {
     @property(Label)
     downloadRemainTimeLabel: Label = null!;
 
+    @property(Node)
+    ContentNode: Node
+
     @property({ tooltip: "QQ群号" })
-    public qqGroupNum: string = "920056111"; // 替换为你的群号
+    public qqGroupNum: string = "1092641657"; // 替换为你的群号
 
     // 按钮点击回调：打开超链接
     public onButtonClick() {
@@ -78,19 +117,31 @@ export class Loginpel extends Component {
                 // case sys.OS.OHOS:
                 //     packageUrl = `https://raw.githubusercontent.com/zhitaocai/cocos-creator-gg-hot-update-demo/v6/build/ohos/data-gg-hot-update`;
                 //     break;
-                // case sys.OS.IOS:
-                //     packageUrl = `https://raw.githubusercontent.com/zhitaocai/cocos-creator-gg-hot-update-demo/v6/build/ios/data-gg-hot-update`;
-                //     break;
+                case sys.OS.IOS:
+                    packageUrl = `https://czx.yimem.com:5508/data-gg-hot-update`;
+                    this.serverList = [
+                        // { "id": 1, "name": "梦回西游", "url": "https://czx.yimem.com:3002/" },
+                        // { "id": 2, "name": "再续前缘", "url": "https://czx.yimem.com:3004/" },
+                    ]
+                    break;
                 case sys.OS.ANDROID:
-                    // packageUrl = `https://raw.githubusercontent.com/zhitaocai/cocos-creator-gg-hot-update-demo/v6/build/android/data-gg-hot-update`;
-                    // packageUrl = `http://192.168.40.10:8082/gg-hot-update-demo/build/android/data-gg-hot-update`;
                     packageUrl = `http://czx.yimem.com:5503/data-gg-hot-update`;
+                    this.serverList = [
+                        { "id": 1, "name": "天南大陆", "url": "http://czx.yimem.com:3001/" },
+                        // { "id": 2, "name": "再续前缘", "url": "http://czx.yimem.com:3003/" },
+                    ]
                     break;
             }
             ggHotUpdateManager.init({
                 enableLog: DEBUG,
                 packageUrl: packageUrl,
             });
+        }
+        this.url = localStorage.getItem("url") ?? this.serverList[0].url;
+        for (let i = this.serverList.length - 1; i >= 0; i--) {
+            if (this.url == this.serverList[i].url) {
+                this.severeLabel.string = this.serverList[i].name;
+            }
         }
     }
 
@@ -256,10 +307,28 @@ export class Loginpel extends Component {
 
     private _enterLobbyScene() {
         this.node.getChildByName("update").active = false;
+        // 弹窗弹跳入场效果
         this.enterGame()
     }
 
+    openGameNotice() {
+        if (this.node.getChildByName("GameNotice").active) {
+            this.node.getChildByName("GameNotice").active = false
+        } else {
+            AudioMgr.inst.playOneShot("sound/other/click");
+            this.ContentNode.getComponent(RichText).string = this.content
+            this.node.getChildByName("GameNotice").active = true
+            this.node.getChildByName("GameNotice").scale = new Vec3(0, 0, 0)
+            tween(this.node.getChildByName("GameNotice"))
+                .to(1, { scale: new Vec3(1, 1, 1) }, { easing: 'elasticOut' })
+                .start();
+        }
 
+    }
+    closeGameNotice() {
+        AudioMgr.inst.playOneShot("sound/other/click");
+        this.node.getChildByName("GameNotice").active = false
+    }
 
     /**
        * 设置下载进度可见性
@@ -306,70 +375,79 @@ export class Loginpel extends Component {
      * 版本一致，进入游戏主场景
      */
     private enterGame() {
-        director.loadScene("Home")
-        // const token = getToken()
-        // const postData = {
-        //     token: token,
-        // };
-        // const options = {
-        //     method: 'POST',
-        //     headers: { 'Content-Type': 'application/json' },
-        //     body: JSON.stringify(postData),
-        // };
-        // fetch(this.url + "updateGame", options)
-        //     .then(response => {
-        //         if (!response.ok) {
-        //             throw new Error('Network response was not ok');
-        //         }
-        //         return response.json(); // 解析 JSON 响应
-        //     })
-        //     .then(data => {
-        //         // console.log(data); // 处理响应数据
-        //         if (data.success == '1') {
-        //             localStorage.setItem("UserConfigData", null)
-        //             var userInfo = data.data;
-        //             var config = {
-        //                 "version": "0.0.1",
-        //                 "volume": 0.1,
-        //                 "userData": {
-        //                     "userId": userInfo.userId,
-        //                     "gold": userInfo.gold,
-        //                     "diamond": userInfo.diamond,
-        //                     "soul": userInfo.soul,
-        //                     "lv": userInfo.lv,
-        //                     "exp": userInfo.exp,
-        //                     "nickname": userInfo.nickname,
-        //                     "useCardCount": userInfo.useCardCount,
-        //                     "signCount": userInfo.signCount,
-        //                     "backpack": [],
-        //                     "equipments": userInfo.eqCharactersList,
-        //                     "gameImg": userInfo.gameImg,
-        //                     "characters": userInfo.characterList,
-        //                     "winCount": userInfo.winCount,
-        //                     "chapter": userInfo.chapter,
-        //                     "stopLevel": userInfo.stopLevel,
-        //                     "weiwanCount": userInfo.weiwanCount,
-        //                     "bronze": userInfo.bronze,
-        //                     "darkSteel": userInfo.darkSteel,
-        //                     "purpleGold": userInfo.purpleGold,
-        //                     "crystal": userInfo.crystal,
-        //                      "myCode":userInfo.myCode
-        //                 },
-        //             }
-        //             this.SetLeaveEnergy(userInfo.tiliCount)
-        //             localStorage.setItem('LastGetTime1', userInfo.tiliCountTime + "");
-        //             localStorage.setItem('LastGetHuoliTime1', userInfo.huoliCountTime + "");
-        //             this.SetLeaveHuoliEnergy(userInfo.huoliCount)
-        //             localStorage.setItem("UserConfigData", JSON.stringify(config))
-        //             director.loadScene("Home")
-        //         } else {
-        //             const close = util.message.confirm({ message: data.errorMsg || "服务器异常" })
-        //         }
-        //     })
-        //     .catch(error => {
-        //         console.error('There was a problem with the fetch operation:', error);
-        //     }
-        //     );
+        if (this.isRequesting) return;
+        this.isRequesting = true;
+        const token = getToken()
+        const postData = {
+            token: token,
+        };
+        const options = {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(postData),
+        };
+        fetch(this.url + "updateGame", options)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json(); // 解析 JSON 响应
+            })
+            .then(data => {
+                // console.log(data); // 处理响应数据
+                if (data.success == '1') {
+                    localStorage.setItem("UserConfigData", null)
+                    var userInfo = data.data;
+                    var config = {
+                        "version": "0.0.1",
+                        "volume": 0.1,
+                        "ServerUrl": {
+                            "url": this.url
+                        },
+                        "userData": {
+                            "userId": userInfo.userId,
+                            "gold": userInfo.gold,
+                            "diamond": userInfo.diamond,
+                            "soul": userInfo.soul,
+                            "lv": userInfo.lv,
+                            "exp": userInfo.exp,
+                            "nickname": userInfo.nickname,
+                            "useCardCount": userInfo.useCardCount,
+                            "signCount": userInfo.signCount,
+                            "backpack": [],
+                            "equipments": userInfo.eqCharactersList,
+                            "gameImg": userInfo.gameImg,
+                            "characters": userInfo.characterList,
+                            "winCount": userInfo.winCount,
+                            "chapter": userInfo.chapter,
+                            "stopLevel": userInfo.stopLevel,
+                            "weiwanCount": userInfo.weiwanCount,
+                            "bronze": userInfo.bronze,
+                            "darkSteel": userInfo.darkSteel,
+                            "purpleGold": userInfo.purpleGold,
+                            "crystal": userInfo.crystal,
+                            "myCode": userInfo.myCode
+                        },
+                    }
+                    this.SetLeaveEnergy(userInfo.tiliCount)
+                    localStorage.setItem('LastGetTime1', userInfo.tiliCountTime + "");
+                    localStorage.setItem('LastGetHuoliTime1', userInfo.huoliCountTime + "");
+                    this.SetLeaveHuoliEnergy(userInfo.huoliCount)
+                    localStorage.setItem("UserConfigData", JSON.stringify(config))
+                    director.loadScene("Home")
+                } else {
+                    const close = util.message.confirm({ message: data.errorMsg || "服务器异常" })
+                }
+                setTimeout(() => {
+                    this.isRequesting = false;
+                }, 3000);
+            })
+            .catch(error => {
+                console.error('There was a problem with the fetch operation:', error);
+                setTimeout(() => {
+                    this.isRequesting = false;
+                }, 3000);
+            });
     }
 
     /**
@@ -422,39 +500,25 @@ export class Loginpel extends Component {
     }
     register() {
         AudioMgr.inst.playOneShot("sound/other/click");
-        const username = this.Username.string;
-        const password = this.Password.string; // 假设有两个输入框，分别用于用户名和密码
-        if (!username) {
-            const close = util.message.confirm({ message: "请输入账号" })
-            return;
-        }
-        if (!password) {
-            const close = util.message.confirm({ message: "请输入密码" })
-            return;
-        }
-        this.node.getChildByName("YaoCode").active = true
-
-    }
-
-    closeYao() {
-        AudioMgr.inst.playOneShot("sound/other/click");
-        this.node.getChildByName("YaoCode").active = false
-    }
-    yaoCode() {
-        AudioMgr.inst.playOneShot("sound/other/click");
-        const username = this.Username.string;
+        const username = this.Username2.string;
         const yaoCode = this.YaoCode.string;
-        const password = this.Password.string; // 假设有两个输入框，分别用于用户名和密码
+        const password = this.Password2.string; // 假设有两个输入框，分别用于用户名和密码
         if (!username) {
-            const close = util.message.confirm({ message: "请输入账号" })
+            const close = util.message.confirm({ message: "请输入邮箱" })
             return;
         }
+        const emailRegex = /^[a-zA-Z0-9_\-.]+@[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+)+$/;
+        if (!emailRegex.test(username)) {
+            util.message.confirm({ message: "请输入有效的邮箱地址" });
+            return;
+        }
+
         if (!password) {
             const close = util.message.confirm({ message: "请输入密码" })
             return;
         }
         if (!yaoCode) {
-            const close = util.message.confirm({ message: "请输入邀请码" })
+            const close = util.message.confirm({ message: "请输入验证码" })
             return;
         }
         // 验证逻辑（示例）
@@ -462,7 +526,7 @@ export class Loginpel extends Component {
             const postData = {
                 username: username,
                 userpassword: password,
-                yaoCode: yaoCode
+                yaoCode: yaoCode,
             };
             // let formData = new FormData();
             // formData.append('username', username);
@@ -507,9 +571,142 @@ export class Loginpel extends Component {
 
         }
     }
+    updateStoreData() {
+        AudioMgr.inst.playOneShot("sound/other/click");
+        const username = this.Username2.string;
+        if (!username) {
+            const close = util.message.confirm({ message: "请输入邮箱" })
+            return;
+        }
+        const emailRegex = /^[a-zA-Z0-9_\-.]+@[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+)+$/;
+        if (!emailRegex.test(username)) {
+            util.message.confirm({ message: "请输入有效的邮箱地址" });
+            return;
+        }
+        // 验证逻辑（示例）
+        const postData = {
+            str: username,
+        };
+        const options = {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(postData),
+        };
+
+        // 发送 POST 请求
+        fetch(this.url + "sendVerificationCode", options)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json(); // 解析 JSON 响应
+            })
+            .then(data => {
+                // console.log(data); // 处理响应数据
+                if (data.success == '1') {
+                    const close = util.message.confirm({ message: data.errorMsg || "服务器异常" })
+                    this.sendCode.interactable = false
+                    let time = 60
+                    let self = this
+                    this.sendCodeLabel.string = "(" + time + ")"
+                    this.schedule(function () {
+                        time--
+                        this.sendCodeLabel.string = "(" + time + ")"
+                        if (time <= 0) {
+                            this.sendCodeLabel.string = "发送验证码"
+                        }
+                    }, 1, 60)
+                    this.scheduleOnce(function () {
+                        self.sendCode.interactable = true
+                        self.sendCodeLabel.string = "发送验证码"
+                    }, 60)
+                } else {
+                    const close = util.message.confirm({ message: data.errorMsg || "服务器异常" })
+                }
+            })
+            .catch(error => {
+                console.error('There was a problem with the fetch operation:', error);
+            }
+            );
+    }
+    closeYao() {
+        AudioMgr.inst.playOneShot("sound/other/click");
+        this.node.getChildByName("YaoCode").active = false
+    }
+
+    goback() {
+        AudioMgr.inst.playOneShot("sound/other/click");
+        this.node.getChildByName("setCount").active = false
+    }
+
+    goback2() {
+        AudioMgr.inst.playOneShot("sound/other/click");
+        this.node.getChildByName("register").active = false
+    }
+    goback3() {
+        AudioMgr.inst.playOneShot("sound/other/click");
+        this.node.getChildByName("ServerList").active = false
+    }
+
+    registerBtn() {
+        AudioMgr.inst.playOneShot("sound/other/click");
+        this.node.getChildByName("register").active = true
+    }
+
+
+    async openServerList() {
+        AudioMgr.inst.playOneShot("sound/other/click");
+        this.node.getChildByName("ServerList").active = true
+        const nodePool = util.resource.getNodePool(
+            await util.bundle.load("prefab/server", Prefab)
+        )
+        const childrens = [...this.ContentNode2.children]
+        for (let i = 0; i < childrens.length; i++) {
+            const node = childrens[i];
+            node.off("click")
+            nodePool.put(node)
+        }
+        for (let i = this.serverList.length - 1; i >= 0; i--) {
+            let item = nodePool.get()
+            if (this.url == this.serverList[i].url) {
+                item.getComponent(Sprite).spriteFrame =
+                    await util.bundle.load("image/button/22/spriteFrame", SpriteFrame)
+            } else {
+                item.getComponent(Sprite).spriteFrame =
+                    await util.bundle.load("image/button/11/spriteFrame", SpriteFrame)
+            }
+            item.getChildByName("num").getComponent(Label).string = i + 1 + "服"
+            item.getChildByName("name").getComponent(Label).string = this.serverList[i].name
+            if (i == this.serverList.length - 1) {
+                item.getChildByName("tuijian").active = true
+                item.getChildByName("good").getComponent(Sprite).spriteFrame =
+                    await util.bundle.load("image/button/good/spriteFrame", SpriteFrame)
+            } else {
+                item.getChildByName("tuijian").active = false
+                item.getChildByName("good").getComponent(Sprite).spriteFrame =
+                    await util.bundle.load("image/button/bad/spriteFrame", SpriteFrame)
+            }
+            // // 绑定事件
+            item.on("click", () => {
+                this.url = this.serverList[i].url
+                localStorage.setItem("url", this.url)
+                this.severeLabel.string = this.serverList[i].name;
+                localStorage.setItem("token", null)
+                this.openServerList()
+            })
+            this.ContentNode2.addChild(item)
+            continue
+        }
+    }
+
+    loginBtn3() {
+        AudioMgr.inst.playOneShot("sound/other/click");
+        this.node.getChildByName("setCount").active = true
+    }
+
     loginBtn() {
         AudioMgr.inst.playOneShot("sound/other/click");
-        director.loadScene("Home")
+        this.enterGame();
     }
     loginBtn2() {
         AudioMgr.inst.playOneShot("sound/other/click");
@@ -559,43 +756,11 @@ export class Loginpel extends Component {
                 .then(data => {
                     // console.log(data); // 处理响应数据
                     if (data.success == '1') {
+                        const close = util.message.confirm({ message: data.errorMsg })
                         localStorage.setItem("UserConfigData", null)
                         var userInfo = data.data;
-                        var config = {
-                            "version": "0.0.1",
-                            "volume": 0.1,
-                            "userData": {
-                                "userId": userInfo.userId,
-                                "gold": userInfo.gold,
-                                "diamond": userInfo.diamond,
-                                "soul": userInfo.soul,
-                                "lv": userInfo.lv,
-                                "exp": userInfo.exp,
-                                "nickname": userInfo.nickname,
-                                "signCount": userInfo.signCount,
-                                "useCardCount": userInfo.useCardCount,
-                                "backpack": [],
-                                "equipments": userInfo.eqCharactersList,
-                                "characters": userInfo.characterList,
-                                "gameImg": userInfo.gameImg,
-                                "winCount": userInfo.winCount,
-                                "chapter": userInfo.chapter,
-                                "stopLevel": userInfo.stopLevel,
-                                "weiwanCount": userInfo.weiwanCount,
-                                "bronze": userInfo.bronze,
-                                "darkSteel": userInfo.darkSteel,
-                                "purpleGold": userInfo.purpleGold,
-                                "crystal": userInfo.crystal,
-                                "myCode": userInfo.myCode
-                            },
-                        }
-                        this.SetLeaveEnergy(userInfo.tiliCount)
-                        localStorage.setItem('LastGetTime1', userInfo.tiliCountTime + "");
-                        localStorage.setItem('LastGetHuoliTime1', userInfo.huoliCountTime + "");
-                        this.SetLeaveHuoliEnergy(userInfo.huoliCount)
                         localStorage.setItem("token", userInfo.token)
-                        localStorage.setItem("UserConfigData", JSON.stringify(config))
-                        director.loadScene("Home")
+                        this.node.getChildByName("setCount").active = false
                     } else {
                         const close = util.message.confirm({ message: data.errorMsg || "服务器异常" })
                     }

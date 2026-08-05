@@ -143,6 +143,9 @@ export class HomeBuildings extends Component {
         audioSource.volume = config.volume * config.volumeDetail.home
         audioSource.play()
         this.node.getChildByName("top").getChildByName("Name").getChildByName("kuan").getChildByName("name").getComponent(Label).string = config.userData.nickname
+        this.node.getChildByName("top").getChildByName("headimg").getChildByName("img").getComponent(Sprite).spriteFrame =
+                await util.bundle.load(config.userData.gameImg, SpriteFrame)
+
     }
 
     otherBtn() {
@@ -168,6 +171,10 @@ export class HomeBuildings extends Component {
     openRecruitBtn() {
         AudioMgr.inst.playOneShot("sound/other/click");
         this.node.parent.getChildByName("RecruitCtrl").active = true
+    }
+    openChatBtn() {
+        AudioMgr.inst.playOneShot("sound/other/click");
+        this.node.parent.getChildByName("ChatCrtl").active = true
     }
     protected async start111() {
         // HolPreLoad 预加载进度条
@@ -453,8 +460,8 @@ export class HomeBuildings extends Component {
 
 
 
-   
 
-   
+
+
 }
 

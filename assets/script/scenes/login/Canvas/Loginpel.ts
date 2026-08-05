@@ -36,13 +36,22 @@ export class Loginpel extends Component {
     sendCodeLabel: Label;
     @property(Label)
     sendCodeLabel2: Label;
+    @property(RichText)
+    RichText1: RichText;
+    @property(RichText)
+    RichText2: RichText;
+    @property(RichText)
+    RichText3: RichText;
+    @property(RichText)
+    RichText4: RichText;
+    isEmail: boolean = true;
     @property(Label)
     severeLabel: Label;
     isSendingCode: boolean = false;
     @property({ type: Node, tooltip: "任务列表" }) ContentNode2: Node = null;
     // redis-server.exe redis.windows.conf
-    // serverList = [{ "id": 1, "name": "天南大陆", "url": "http://czx.yimem.com:3001/" }]
-    serverList = [{ "id": 1, "name": "天南大陆", "url": "http://127.0.0.1:8890/" }]
+    serverList = [{ "id": 1, "name": "天南大陆", "url": "http://czx.yimem.com:3001/" }]
+    // serverList = [{ "id": 1, "name": "天南大陆", "url": "http://127.0.0.1:8890/" }]
     url = localStorage.getItem("url") ?? this.serverList[0].url;
     //更新公告内容
     content = `<color=#FFFFFF><size=20>各位道友：</size>
@@ -512,17 +521,27 @@ export class Loginpel extends Component {
         AudioMgr.inst.playOneShot("sound/other/click");
         const username = this.Username2.string;
         const yaoCode = this.YaoCode.string;
+        const yaoCode2 = "12345"
         const password = this.Password2.string; // 假设有两个输入框，分别用于用户名和密码
         if (!username) {
-            const close = util.message.confirm({ message: "请输入邮箱" })
+            const close = util.message.confirm({ message: "请输入账号" })
             return;
         }
-        const emailRegex = /^[a-zA-Z0-9_\-.]+@[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+)+$/;
-        if (!emailRegex.test(username)) {
-            util.message.confirm({ message: "请输入有效的邮箱地址" });
-            return;
+        if (this.isEmail) {
+            const emailRegex = /^[a-zA-Z0-9_\-.]+@[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+)+$/;
+            if (!emailRegex.test(username)) {
+                util.message.confirm({ message: "请输入有效的邮箱地址" });
+                return;
+            }
+        } else {
+            // 手机号正则
+            const phoneRegex = /^1[3-9]\d{9}$/;
+            const trimPhone = username.trim();
+            if (!phoneRegex.test(trimPhone)) {
+                util.message.confirm({ message: "请输入有效的手机号码" });
+                return;
+            }
         }
-
         if (!password) {
             const close = util.message.confirm({ message: "请输入密码" })
             return;
@@ -537,6 +556,7 @@ export class Loginpel extends Component {
                 username: username,
                 userpassword: password,
                 yaoCode: yaoCode,
+                yaoCode2: yaoCode2
             };
             // let formData = new FormData();
             // formData.append('username', username);
@@ -587,13 +607,23 @@ export class Loginpel extends Component {
         const yaoCode3 = this.YaoCode3.string;
         const password = this.Password3.string; // 假设有两个输入框，分别用于用户名和密码
         if (!username) {
-            const close = util.message.confirm({ message: "请输入邮箱" })
+            const close = util.message.confirm({ message: "请输入账号" })
             return;
         }
-        const emailRegex = /^[a-zA-Z0-9_\-.]+@[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+)+$/;
-        if (!emailRegex.test(username)) {
-            util.message.confirm({ message: "请输入有效的邮箱地址" });
-            return;
+        if (this.isEmail) {
+            const emailRegex = /^[a-zA-Z0-9_\-.]+@[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+)+$/;
+            if (!emailRegex.test(username)) {
+                util.message.confirm({ message: "请输入有效的邮箱地址" });
+                return;
+            }
+        } else {
+            // 手机号正则
+            const phoneRegex = /^1[3-9]\d{9}$/;
+            const trimPhone = username.trim();
+            if (!phoneRegex.test(trimPhone)) {
+                util.message.confirm({ message: "请输入有效的手机号码" });
+                return;
+            }
         }
 
         if (!password) {
@@ -658,14 +688,25 @@ export class Loginpel extends Component {
         AudioMgr.inst.playOneShot("sound/other/click");
         const username = this.Username2.string;
         if (!username) {
-            const close = util.message.confirm({ message: "请输入邮箱" })
+            const close = util.message.confirm({ message: "请输入账号" })
             return;
         }
-        const emailRegex = /^[a-zA-Z0-9_\-.]+@[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+)+$/;
-        if (!emailRegex.test(username)) {
-            util.message.confirm({ message: "请输入有效的邮箱地址" });
-            return;
+        if (this.isEmail) {
+            const emailRegex = /^[a-zA-Z0-9_\-.]+@[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+)+$/;
+            if (!emailRegex.test(username)) {
+                util.message.confirm({ message: "请输入有效的邮箱地址" });
+                return;
+            }
+        } else {
+            // 手机号正则
+            const phoneRegex = /^1[3-9]\d{9}$/;
+            const trimPhone = username.trim();
+            if (!phoneRegex.test(trimPhone)) {
+                util.message.confirm({ message: "请输入有效的手机号码" });
+                return;
+            }
         }
+
         // 验证逻辑（示例）
         const postData = {
             str: username,
@@ -675,9 +716,12 @@ export class Loginpel extends Component {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(postData),
         };
-
+        let cc = 'sendVerificationCode'
+        if (!this.isEmail) {
+            cc = 'sendVerificationMobileCode'
+        }
         // 发送 POST 请求
-        fetch(this.url + "sendVerificationCode", options)
+        fetch(this.url + cc, options)
             .then(response => {
                 if (!response.ok) {
                     throw new Error('Network response was not ok');
@@ -716,13 +760,23 @@ export class Loginpel extends Component {
         AudioMgr.inst.playOneShot("sound/other/click");
         const username = this.Username3.string;
         if (!username) {
-            const close = util.message.confirm({ message: "请输入邮箱" })
+            const close = util.message.confirm({ message: "请输入账号" })
             return;
         }
-        const emailRegex = /^[a-zA-Z0-9_\-.]+@[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+)+$/;
-        if (!emailRegex.test(username)) {
-            util.message.confirm({ message: "请输入有效的邮箱地址" });
-            return;
+        if (this.isEmail) {
+            const emailRegex = /^[a-zA-Z0-9_\-.]+@[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+)+$/;
+            if (!emailRegex.test(username)) {
+                util.message.confirm({ message: "请输入有效的邮箱地址" });
+                return;
+            }
+        } else {
+            // 手机号正则
+            const phoneRegex = /^1[3-9]\d{9}$/;
+            const trimPhone = username.trim();
+            if (!phoneRegex.test(trimPhone)) {
+                util.message.confirm({ message: "请输入有效的手机号码" });
+                return;
+            }
         }
         // 验证逻辑（示例）
         const postData = {
@@ -733,9 +787,12 @@ export class Loginpel extends Component {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(postData),
         };
-
+        let cc = 'sendVerificationCode'
+        if (!this.isEmail) {
+            cc = 'sendVerificationMobileCode'
+        }
         // 发送 POST 请求
-        fetch(this.url + "sendVerificationCode", options)
+        fetch(this.url + cc, options)
             .then(response => {
                 if (!response.ok) {
                     throw new Error('Network response was not ok');
@@ -792,7 +849,6 @@ export class Loginpel extends Component {
         AudioMgr.inst.playOneShot("sound/other/click");
         this.node.getChildByName("forgotPassword").active = false
     }
-
     registerBtn() {
         AudioMgr.inst.playOneShot("sound/other/click");
         this.node.getChildByName("register").active = true
@@ -802,6 +858,7 @@ export class Loginpel extends Component {
         AudioMgr.inst.playOneShot("sound/other/click");
         this.node.getChildByName("forgotPassword").active = true
     }
+
 
     async openServerList() {
         AudioMgr.inst.playOneShot("sound/other/click");
@@ -819,21 +876,21 @@ export class Loginpel extends Component {
             let item = nodePool.get()
             if (this.url == this.serverList[i].url) {
                 item.getComponent(Sprite).spriteFrame =
-                    await util.bundle.load("image/button/22/spriteFrame", SpriteFrame)
+                    await util.bundle.load("image/back/22/spriteFrame", SpriteFrame)
             } else {
                 item.getComponent(Sprite).spriteFrame =
-                    await util.bundle.load("image/button/11/spriteFrame", SpriteFrame)
+                    await util.bundle.load("image/back/11/spriteFrame", SpriteFrame)
             }
             item.getChildByName("num").getComponent(Label).string = i + 1 + "服"
             item.getChildByName("name").getComponent(Label).string = this.serverList[i].name
             if (i == this.serverList.length - 1) {
                 item.getChildByName("tuijian").active = true
                 item.getChildByName("good").getComponent(Sprite).spriteFrame =
-                    await util.bundle.load("image/button/good/spriteFrame", SpriteFrame)
+                    await util.bundle.load("image/back/good/spriteFrame", SpriteFrame)
             } else {
                 item.getChildByName("tuijian").active = false
                 item.getChildByName("good").getComponent(Sprite).spriteFrame =
-                    await util.bundle.load("image/button/bad/spriteFrame", SpriteFrame)
+                    await util.bundle.load("image/back/bad/spriteFrame", SpriteFrame)
             }
             // // 绑定事件
             item.on("click", () => {
@@ -845,6 +902,32 @@ export class Loginpel extends Component {
             })
             this.ContentNode2.addChild(item)
             continue
+        }
+    }
+
+    changeRegister(event: Event, customEventData: string) {
+        AudioMgr.inst.playOneShot("sound/other/click");
+        if (customEventData == "1") {
+            this.isEmail = true
+            this.RichText1.string = " <color=#222222><u font-size='24'>邮箱注册</u> </color>"
+            this.RichText2.string = " <color=#858585>短信注册</color>"
+        } else {
+            this.isEmail = false
+            this.RichText2.string = " <color=#222222><u font-size='24'>短信注册</u> </color>"
+            this.RichText1.string = " <color=#858585>邮箱注册</color>"
+        }
+    }
+
+    changeRegister2(event: Event, customEventData: string) {
+        AudioMgr.inst.playOneShot("sound/other/click");
+        if (customEventData == "1") {
+            this.isEmail = true
+            this.RichText3.string = " <color=#222222><u font-size='24'>邮箱账号</u> </color>"
+            this.RichText4.string = " <color=#858585>短信账号</color>"
+        } else {
+            this.isEmail = false
+            this.RichText4.string = " <color=#222222><u font-size='24'>短信账号</u> </color>"
+            this.RichText3.string = " <color=#858585>邮箱账号</color>"
         }
     }
 
